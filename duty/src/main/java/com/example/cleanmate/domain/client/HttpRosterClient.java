@@ -31,7 +31,7 @@ public class HttpRosterClient implements RosterClient {
                 .body(RosterApiResponse.class);
 
         if (response == null || !response.success()) {
-            throw new RuntimeException("명단 조회 실패: auth 서버 응답 없음");
+            throw new RosterUnavailableException();
         }
         return response.result();
     }
