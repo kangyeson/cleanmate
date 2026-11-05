@@ -54,17 +54,17 @@ public class DutyService {
     }
 
     /**
-     * 로그인한 사용자의 이번 주 담당 구역을 반환한다.
+     * 로그인한 사용자의 이번 주 담당 구역 목록을 반환한다.
+     * 한 명이 여러 구역을 담당할 수 있으므로 List로 반환. 담당 구역 없으면 빈 리스트.
      */
-    public WeekDutyResponse.DutyItem getMyDuty(Long memberId) {
+    public List<WeekDutyResponse.DutyItem> getMyDuty(Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
         assignWeekIfAbsent(weekStart, roster);
         return dutyRepository.findByRoomAndWeek(roster.roomId(), weekStart).stream()
                 .filter(d -> d.getAssigneeId().equals(memberId))
                 .map(d -> toItem(d, roster))
-                .findFirst()
-                .orElseThrow(DutyNotFoundException::new);
+                .toList();
     }
 
     // ── 기록 ──────────────────────────────────────────────────

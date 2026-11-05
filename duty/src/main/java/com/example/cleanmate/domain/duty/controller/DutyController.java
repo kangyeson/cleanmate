@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/duty")
 public class DutyController {
@@ -28,9 +30,9 @@ public class DutyController {
         return ApiResponse.ok(dutyService.getWeekDuties());
     }
 
-    /** 내 담당 구역 (로그인 필요 — SessionInterceptor가 memberId를 request에 담음) */
+    /** 내 담당 구역 목록 (로그인 필요 — SessionInterceptor가 memberId를 request에 담음) */
     @GetMapping("/mine")
-    public ApiResponse<WeekDutyResponse.DutyItem> getMyDuty(HttpServletRequest request) {
+    public ApiResponse<List<WeekDutyResponse.DutyItem>> getMyDuty(HttpServletRequest request) {
         Long memberId = (Long) request.getAttribute(SessionInterceptor.MEMBER_ATTR);
         return ApiResponse.ok(dutyService.getMyDuty(memberId));
     }

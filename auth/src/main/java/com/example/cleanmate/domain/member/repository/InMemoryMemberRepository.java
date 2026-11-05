@@ -29,10 +29,10 @@ public class InMemoryMemberRepository implements MemberRepository {
 
     public InMemoryMemberRepository(PasswordHasher hasher) {
         // 고정 salt — 재시작해도 비밀번호 "1234"로 로그인 가능 (메모리 한정)
-        add(1L, "민정", MemberRole.ADMIN,  "salt-minjung",  1, hasher);
+        add(1L, "민정", MemberRole.MEMBER, "salt-minjung",  1, hasher);
         add(2L, "지현", MemberRole.MEMBER, "salt-jihyeon",  2, hasher);
         add(3L, "서현", MemberRole.MEMBER, "salt-seohyeon", 3, hasher);
-        add(4L, "예손", MemberRole.MEMBER, "salt-yeson",    4, hasher);
+        add(4L, "예손", MemberRole.ADMIN,  "salt-yeson",    4, hasher);
     }
 
     private void add(Long id, String name, MemberRole role, String salt, int order, PasswordHasher hasher) {
@@ -41,6 +41,8 @@ public class InMemoryMemberRepository implements MemberRepository {
 
     @Override
     public Optional<Member> findByName(String name) {
+        // TODO(3단계): JdbcMemberRepository에서는 현재 활성 방(roomId)도 함께 필터링할 것.
+        //   같은 이름의 멤버가 다른 방에 있을 수 있으므로 name + roomId 조합으로 조회해야 함.
         return store.values().stream()
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
