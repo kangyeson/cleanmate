@@ -3,6 +3,7 @@ package com.example.cleanmate.domain.client;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * auth 서버의 GET /internal/roster를 호출해 명단을 가져온다.
@@ -25,14 +26,18 @@ public class HttpRosterClient implements RosterClient {
 
     @Override
     public RosterResponse getRoster() {
-        RosterApiResponse response = restClient.get()
-                .uri("/internal/roster")
-                .retrieve()
-                .body(RosterApiResponse.class);
+        try {
+            RosterApiResponse response = restClient.get()
+                    .uri("/internal/roster")
+                    .retrieve()
+                    .body(RosterApiResponse.class);
 
-        if (response == null || !response.success()) {
+            if (response == null || !response.success()) {
+                throw new RosterUnavailableException();
+            }
+            return response.result();
+        } catch (RestClientException e) {
             throw new RosterUnavailableException();
         }
-        return response.result();
     }
 }
