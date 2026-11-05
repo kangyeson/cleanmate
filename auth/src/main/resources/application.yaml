@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: cleanmate-auth
+
+server:
+  port: 8081

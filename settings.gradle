@@ -1,1 +1,2 @@
 rootProject.name = 'cleanmate'
+include 'duty', 'auth'
