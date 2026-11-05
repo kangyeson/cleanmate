@@ -3,7 +3,12 @@ package com.example.cleanmate.domain.duty.service;
 import com.example.cleanmate.domain.client.RosterClient;
 import com.example.cleanmate.domain.client.RosterResponse;
 import com.example.cleanmate.domain.duty.dto.WeekDutyResponse;
+import com.example.cleanmate.domain.duty.exception.AlreadyDoneException;
+import com.example.cleanmate.domain.duty.exception.DutyNotFoundException;
+import com.example.cleanmate.domain.duty.exception.NotAssigneeException;
+import com.example.cleanmate.domain.duty.exception.NotRecordOwnerException;
 import com.example.cleanmate.domain.duty.model.Duty;
+import com.example.cleanmate.domain.duty.model.DutyStatus;
 import com.example.cleanmate.domain.duty.model.RotationPolicy;
 import com.example.cleanmate.domain.duty.model.WeekCalendar;
 import com.example.cleanmate.domain.duty.repository.DutyRepository;
@@ -29,6 +34,8 @@ public class DutyService {
         this.rotationPolicy = rotationPolicy;
     }
 
+    // ── 조회 ──────────────────────────────────────────────────
+
     /**
      * 이번 주 현황을 반환한다.
      * 아직 배정이 없으면 먼저 생성한다.
@@ -41,10 +48,78 @@ public class DutyService {
         return toResponse(weekStart, duties, roster);
     }
 
+    // ── 기록 ──────────────────────────────────────────────────
+
     /**
-     * 해당 주 배정이 없을 때만 생성한다 (멱등).
-     * RotationPolicy 공식: (i + weekIndex) % 인원수
+     * 본인 담당 구역 완료 처리.
+     * memberId == assigneeId 인 경우에만 허용.
+     *
+     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
      */
+    public void markDone(Long zoneId, Long memberId) {
+        RosterResponse roster = rosterClient.getRoster();
+        LocalDate weekStart = weekCalendar.currentMonday();
+        Duty duty = getDutyOrThrow(roster.roomId(), weekStart, zoneId);
+
+        if (!duty.getAssigneeId().equals(memberId)) {
+            throw new NotAssigneeException();
+        }
+        if (duty.getStatus() != DutyStatus.PENDING) {
+            throw new AlreadyDoneException();
+        }
+        duty.markDone(memberId, weekCalendar.today());
+        dutyRepository.save(duty);
+    }
+
+    /**
+     * 대신 청소.
+     * 본인 담당이 아닌 PENDING 구역에만 허용.
+     *
+     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
+     */
+    public void markSubstitute(Long zoneId, Long memberId) {
+        RosterResponse roster = rosterClient.getRoster();
+        LocalDate weekStart = weekCalendar.currentMonday();
+        Duty duty = getDutyOrThrow(roster.roomId(), weekStart, zoneId);
+
+        if (duty.getAssigneeId().equals(memberId)) {
+            throw new NotAssigneeException(); // 본인 담당은 /done 사용
+        }
+        if (duty.getStatus() != DutyStatus.PENDING) {
+            throw new AlreadyDoneException();
+        }
+        duty.markDone(memberId, weekCalendar.today());
+        dutyRepository.save(duty);
+    }
+
+    /**
+     * 완료 기록 취소.
+     * 본인이 기록한 항목(doneById == memberId)만 취소 가능.
+     *
+     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
+     */
+    public void cancelRecord(Long zoneId, Long memberId) {
+        RosterResponse roster = rosterClient.getRoster();
+        LocalDate weekStart = weekCalendar.currentMonday();
+        Duty duty = getDutyOrThrow(roster.roomId(), weekStart, zoneId);
+
+        if (duty.getStatus() != DutyStatus.DONE) {
+            throw new AlreadyDoneException(); // PENDING/MISSED 상태는 취소 불가
+        }
+        if (!duty.getDoneById().equals(memberId)) {
+            throw new NotRecordOwnerException();
+        }
+        duty.cancel();
+        dutyRepository.save(duty);
+    }
+
+    // ── 내부 헬퍼 ─────────────────────────────────────────────
+
+    private Duty getDutyOrThrow(Long roomId, LocalDate weekStart, Long zoneId) {
+        return dutyRepository.findByRoomAndWeekAndZone(roomId, weekStart, zoneId)
+                .orElseThrow(DutyNotFoundException::new);
+    }
+
     private void assignWeekIfAbsent(LocalDate weekStart, RosterResponse roster) {
         if (dutyRepository.existsByRoomAndWeek(roster.roomId(), weekStart)) {
             return;
