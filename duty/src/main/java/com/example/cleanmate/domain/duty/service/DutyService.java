@@ -12,6 +12,8 @@ import com.example.cleanmate.domain.duty.model.DutyStatus;
 import com.example.cleanmate.domain.duty.model.RotationPolicy;
 import com.example.cleanmate.domain.duty.model.WeekCalendar;
 import com.example.cleanmate.domain.duty.repository.DutyRepository;
+import com.example.cleanmate.global.event.DutyEvent;
+import com.example.cleanmate.global.event.EventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,13 +27,16 @@ public class DutyService {
     private final RosterClient rosterClient;
     private final WeekCalendar weekCalendar;
     private final RotationPolicy rotationPolicy;
+    private final EventPublisher eventPublisher;
 
     public DutyService(DutyRepository dutyRepository, RosterClient rosterClient,
-                       WeekCalendar weekCalendar, RotationPolicy rotationPolicy) {
+                       WeekCalendar weekCalendar, RotationPolicy rotationPolicy,
+                       EventPublisher eventPublisher) {
         this.dutyRepository = dutyRepository;
         this.rosterClient = rosterClient;
         this.weekCalendar = weekCalendar;
         this.rotationPolicy = rotationPolicy;
+        this.eventPublisher = eventPublisher;
     }
 
     // ── 조회 ──────────────────────────────────────────────────
@@ -81,6 +86,7 @@ public class DutyService {
         }
         duty.markDone(memberId, weekCalendar.today());
         dutyRepository.save(duty);
+        eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, false));
     }
 
     /**
@@ -100,6 +106,7 @@ public class DutyService {
         }
         duty.markDone(memberId, weekCalendar.today());
         dutyRepository.save(duty);
+        eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, true));
     }
 
     /**

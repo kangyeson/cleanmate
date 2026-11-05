@@ -38,7 +38,8 @@ class DutyServiceTest {
                 new InMemoryDutyRepository(),
                 new StubRosterClient(),
                 new WeekCalendar(TODAY),
-                new RotationPolicy()
+                new RotationPolicy(),
+                event -> {}  // no-op: 단위 테스트에서 이벤트 발행 불필요
         );
     }
 
