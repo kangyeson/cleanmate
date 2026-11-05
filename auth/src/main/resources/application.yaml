@@ -1,6 +1,8 @@
 spring:
   application:
     name: cleanmate-auth
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   data:
     redis:
       host: ${REDIS_HOST:localhost}
