@@ -48,13 +48,25 @@ public class DutyService {
         return toResponse(weekStart, duties, roster);
     }
 
+    /**
+     * 로그인한 사용자의 이번 주 담당 구역을 반환한다.
+     */
+    public WeekDutyResponse.DutyItem getMyDuty(Long memberId) {
+        RosterResponse roster = rosterClient.getRoster();
+        LocalDate weekStart = weekCalendar.currentMonday();
+        assignWeekIfAbsent(weekStart, roster);
+        return dutyRepository.findByRoomAndWeek(roster.roomId(), weekStart).stream()
+                .filter(d -> d.getAssigneeId().equals(memberId))
+                .map(d -> toItem(d, roster))
+                .findFirst()
+                .orElseThrow(DutyNotFoundException::new);
+    }
+
     // ── 기록 ──────────────────────────────────────────────────
 
     /**
      * 본인 담당 구역 완료 처리.
      * memberId == assigneeId 인 경우에만 허용.
-     *
-     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
      */
     public void markDone(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
@@ -74,8 +86,6 @@ public class DutyService {
     /**
      * 대신 청소.
      * 본인 담당이 아닌 PENDING 구역에만 허용.
-     *
-     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
      */
     public void markSubstitute(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
@@ -95,8 +105,6 @@ public class DutyService {
     /**
      * 완료 기록 취소.
      * 본인이 기록한 항목(doneById == memberId)만 취소 가능.
-     *
-     * TODO: 2단계에서 memberId를 세션(CMSESSION)에서 꺼내도록 교체
      */
     public void cancelRecord(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
@@ -131,18 +139,22 @@ public class DutyService {
         }
     }
 
+    private WeekDutyResponse.DutyItem toItem(Duty d, RosterResponse roster) {
+        return new WeekDutyResponse.DutyItem(
+                d.getZoneId(),
+                roster.zoneName(d.getZoneId()),
+                d.getAssigneeId(),
+                roster.memberName(d.getAssigneeId()),
+                d.getStatus(),
+                d.getDoneById(),
+                d.getDoneById() != null ? roster.memberName(d.getDoneById()) : null,
+                d.getDoneDate()
+        );
+    }
+
     private WeekDutyResponse toResponse(LocalDate weekStart, List<Duty> duties, RosterResponse roster) {
         List<WeekDutyResponse.DutyItem> items = duties.stream()
-                .map(d -> new WeekDutyResponse.DutyItem(
-                        d.getZoneId(),
-                        roster.zoneName(d.getZoneId()),
-                        d.getAssigneeId(),
-                        roster.memberName(d.getAssigneeId()),
-                        d.getStatus(),
-                        d.getDoneById(),
-                        d.getDoneById() != null ? roster.memberName(d.getDoneById()) : null,
-                        d.getDoneDate()
-                ))
+                .map(d -> toItem(d, roster))
                 .toList();
         return new WeekDutyResponse(weekStart, items);
     }

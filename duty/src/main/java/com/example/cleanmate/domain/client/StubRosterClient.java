@@ -1,15 +1,12 @@
 package com.example.cleanmate.domain.client;
 
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 개발·테스트용 스텁. 인수인계 문서 3장 예시 데이터를 반환한다.
- * 인증 서버(HttpRosterClient) 완성 후 이 클래스를 제거하고 교체한다.
+ * 단위 테스트 전용 스텁. Spring 빈으로 등록하지 않는다.
+ * 프로덕션에서는 HttpRosterClient가 RosterClient 역할을 맡는다.
  */
-@Component
 public class StubRosterClient implements RosterClient {
 
     @Override

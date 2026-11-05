@@ -1,6 +1,13 @@
 spring:
   application:
     name: cleanmate-duty
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: 8082
+
+roster:
+  auth-url: ${AUTH_URL:http://localhost:8081}
