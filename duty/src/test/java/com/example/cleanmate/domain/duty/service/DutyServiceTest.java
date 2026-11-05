@@ -13,17 +13,22 @@ import com.example.cleanmate.domain.duty.repository.InMemoryDutyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DutyServiceTest {
 
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+
     // 고정 날짜: 2026-11-05(목) → currentMonday = 2026-11-02
-    private static final LocalDate TODAY = LocalDate.of(2026, 11, 5);
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(LocalDate.of(2026, 11, 5).atStartOfDay(SEOUL).toInstant(), SEOUL);
 
     // StubRosterClient 예시 데이터 기준
-    // 샤워실(10L) → 민정(1L), 화장실(20L) → 지현(2L), 세면대(30L) → 서현(3L), 바닥(40L) → 예손(4L)
+    // 샤워실(10L) → 예소민정(1L), 화장실(20L) → 지현(2L), 세면대(30L) → 서현(3L), 바닥(40L) → 예손(4L)
     private static final Long ZONE_샤워실  = 10L;
     private static final Long ZONE_바닥    = 40L;
     private static final Long MEMBER_민정  = 1L;  // 샤워실 담당
@@ -37,7 +42,7 @@ class DutyServiceTest {
         service = new DutyService(
                 new InMemoryDutyRepository(),
                 new StubRosterClient(),
-                new WeekCalendar(TODAY),
+                new WeekCalendar(FIXED_CLOCK),
                 new RotationPolicy(),
                 event -> {}  // no-op: 단위 테스트에서 이벤트 발행 불필요
         );

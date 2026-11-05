@@ -1,5 +1,6 @@
 package com.example.cleanmate.domain.duty.model;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -9,27 +10,20 @@ import java.time.temporal.ChronoUnit;
  * 주(week) 관련 날짜 계산.
  * 주는 월~일, 기준 타임존은 Asia/Seoul.
  *
- * 테스트 시 WeekCalendar(fixedDate)로 오늘 날짜를 고정할 수 있다.
+ * Clock을 주입받으므로 테스트에서 Clock.fixed(...)로 날짜를 고정할 수 있고,
+ * 프로덕션에서는 Clock.system(...)으로 항상 현재 시각을 반영한다.
  */
 public class WeekCalendar {
 
-    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private final Clock clock;
 
-    private final LocalDate today;
-
-    /** 프로덕션용 — 현재 시각 기준 오늘(Seoul) */
-    public WeekCalendar() {
-        this.today = LocalDate.now(SEOUL);
+    public WeekCalendar(Clock clock) {
+        this.clock = clock;
     }
 
-    /** 테스트용 — 오늘 날짜 고정 */
-    public WeekCalendar(LocalDate today) {
-        this.today = today;
-    }
-
-    /** 오늘 날짜 */
+    /** 오늘 날짜 (호출 시점의 clock 기준) */
     public LocalDate today() {
-        return today;
+        return LocalDate.now(clock);
     }
 
     /** 주어진 날짜가 속한 주의 월요일 */
@@ -39,7 +33,7 @@ public class WeekCalendar {
 
     /** 이번 주 월요일 */
     public LocalDate currentMonday() {
-        return mondayOf(today);
+        return mondayOf(today());
     }
 
     /**

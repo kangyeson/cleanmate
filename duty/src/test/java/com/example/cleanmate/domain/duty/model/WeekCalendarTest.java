@@ -2,14 +2,21 @@ package com.example.cleanmate.domain.duty.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class WeekCalendarTest {
 
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+
     // 고정 날짜: 2026-11-05 (목요일)
-    private final WeekCalendar cal = new WeekCalendar(LocalDate.of(2026, 11, 5));
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(LocalDate.of(2026, 11, 5).atStartOfDay(SEOUL).toInstant(), SEOUL);
+
+    private final WeekCalendar cal = new WeekCalendar(FIXED_CLOCK);
 
     @Test
     void today_고정날짜를_반환한다() {
