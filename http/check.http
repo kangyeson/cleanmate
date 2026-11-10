@@ -1,33 +1,33 @@
-### 0. 첫 현황 (로그인 불필요) — 결과: 4개 구역, 모두 PENDING
+### 1. 이번 주 현황 — 기대: 200, weekStart 2026-11-09, 4구역 모두 PENDING
 GET http://localhost:8082/api/duty/week
 
-### 1. 지현 로그인 — 결과: 200 + CMSESSION 쿠키
+### 2. 지현 로그인 — 기대: 200 + Set-Cookie: CMSESSION
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
 {"name": "지현", "password": "1234"}
 
-### 2. 틀린 비밀번호 — 결과: 401, 세션 없음
+### 3. 틀린 비밀번호 — 기대: 401
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
 {"name": "지현", "password": "wrong"}
 
-### 3. 내 구역 (같은 쿠키, 다른 서버) — 결과: 200, [화장실]
+### 4. 내 구역 — 기대: 200, 샤워실
 GET http://localhost:8082/api/duty/mine
 
-### 4. 화장실 완료 — 결과: 200
-POST http://localhost:8082/api/duty/2/done
+### 5. 샤워실 완료 — 기대: 200
+POST http://localhost:8082/api/duty/1/done
 
-### 5. 완료 후 현황 — 결과: 화장실 DONE(오늘 날짜, 지현), 나머지 PENDING
+### 6. 완료 후 현황 — 기대: 샤워실 DONE(2026-11-10, 지현), 나머지 PENDING
 GET http://localhost:8082/api/duty/week
 
-### 6. 쿠키 없이 완료 요청 — 결과: 401, 상태 변화 없음
-# @no-cookie-jar
-POST http://localhost:8082/api/duty/3/done
+### 7. 같은 구역 다시 완료 — 기대: 409
+POST http://localhost:8082/api/duty/1/done
 
-### 7. 같은 구역 다시 완료 — 결과: 409 (이미 완료)
+### 8. 남의 구역(화장실=서현) 완료 — 기대: 403
 POST http://localhost:8082/api/duty/2/done
 
-### 8. 남의 구역을 done으로 — 기대: 403 (본인 담당 아님)
-POST http://localhost:8082/api/duty/1/done
+### 9. 쿠키 없이 완료 — 기대: 401
+# @no-cookie-jar
+POST http://localhost:8082/api/duty/3/done
