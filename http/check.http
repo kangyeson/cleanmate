@@ -17,17 +17,17 @@ Content-Type: application/json
 GET http://localhost:8082/api/duty/mine
 
 ### 4. 화장실 완료 — 결과: 200
-POST http://localhost:8082/api/duty/20/done
+POST http://localhost:8082/api/duty/2/done
 
 ### 5. 완료 후 현황 — 결과: 화장실 DONE(오늘 날짜, 지현), 나머지 PENDING
 GET http://localhost:8082/api/duty/week
 
 ### 6. 쿠키 없이 완료 요청 — 결과: 401, 상태 변화 없음
 # @no-cookie-jar
-POST http://localhost:8082/api/duty/30/done
+POST http://localhost:8082/api/duty/3/done
 
 ### 7. 같은 구역 다시 완료 — 결과: 409 (이미 완료)
-POST http://localhost:8082/api/duty/20/done
+POST http://localhost:8082/api/duty/2/done
 
 ### 8. 남의 구역을 done으로 — 기대: 403 (본인 담당 아님)
-POST http://localhost:8082/api/duty/10/done
+POST http://localhost:8082/api/duty/1/done

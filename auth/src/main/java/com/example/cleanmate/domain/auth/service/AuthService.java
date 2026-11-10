@@ -34,7 +34,7 @@ public class AuthService {
         if (!member.isActive()) {
             throw new InvalidCredentialsException();
         }
-        if (!passwordHasher.matches(password, member.getSalt(), member.getPasswordHash())) {
+        if (!passwordHasher.matches(password, member.getPasswordHash())) {
             throw new InvalidCredentialsException();
         }
 

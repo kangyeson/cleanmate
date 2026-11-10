@@ -28,9 +28,9 @@ class DutyServiceTest {
             Clock.fixed(LocalDate.of(2026, 11, 5).atStartOfDay(SEOUL).toInstant(), SEOUL);
 
     // StubRosterClient 예시 데이터 기준
-    // 샤워실(10L) → 민정(1L), 화장실(20L) → 지현(2L), 세면대(30L) → 서현(3L), 바닥(40L) → 예손(4L)
-    private static final Long ZONE_샤워실  = 10L;
-    private static final Long ZONE_바닥    = 40L;
+    // 샤워실(1L) → 민정(1L), 화장실(2L) → 지현(2L), 세면대(3L) → 서현(3L), 바닥(4L) → 예손(4L)
+    private static final Long ZONE_샤워실  = 1L;
+    private static final Long ZONE_바닥    = 4L;
     private static final Long MEMBER_민정  = 1L;  // 샤워실 담당
     private static final Long MEMBER_지현  = 2L;  // 화장실 담당
     private static final Long MEMBER_예손  = 4L;  // 바닥 담당
@@ -122,7 +122,7 @@ class DutyServiceTest {
     @Test
     void markSubstitute_대신청소하면_DONE이고_isSubstitute() {
         service.getWeekDuties();
-        // 바닥(40L) 담당은 예손(4L). 민정(1L)이 대신 청소
+        // 바닥(4L) 담당은 예손(4L). 민정(1L)이 대신 청소
         service.markSubstitute(ZONE_바닥, MEMBER_민정);
 
         WeekDutyResponse result = service.getWeekDuties();

@@ -1,4 +1,9 @@
 package com.example.cleanmate.domain.auth.dto;
 
-public record LoginRequest(String name, String password) {
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+        @NotBlank String name,
+        @NotBlank String password
+) {
 }

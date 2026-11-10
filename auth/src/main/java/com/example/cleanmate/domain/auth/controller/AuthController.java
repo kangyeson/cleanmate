@@ -5,6 +5,7 @@ import com.example.cleanmate.domain.auth.service.AuthService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,7 +33,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ApiResponse<Void> login(
-            @RequestBody LoginRequest request,
+            @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
         String sessionId = authService.login(request.name(), request.password());
         addSessionCookie(response, sessionId, COOKIE_MAX_AGE);

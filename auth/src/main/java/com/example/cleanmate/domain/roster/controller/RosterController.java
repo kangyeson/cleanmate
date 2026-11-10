@@ -20,10 +20,10 @@ public class RosterController {
 
     // 구역 목록 — 3단계에서 zones 테이블로 교체
     private static final List<RosterResponse.ZoneInfo> ZONES = List.of(
-            new RosterResponse.ZoneInfo(10L, "샤워실"),
-            new RosterResponse.ZoneInfo(20L, "화장실"),
-            new RosterResponse.ZoneInfo(30L, "세면대"),
-            new RosterResponse.ZoneInfo(40L, "바닥")
+            new RosterResponse.ZoneInfo(1L, "샤워실"),
+            new RosterResponse.ZoneInfo(2L, "화장실"),
+            new RosterResponse.ZoneInfo(3L, "세면대"),
+            new RosterResponse.ZoneInfo(4L, "바닥")
     );
 
     private final MemberRepository memberRepository;

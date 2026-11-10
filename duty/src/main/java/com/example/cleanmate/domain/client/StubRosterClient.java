@@ -22,10 +22,10 @@ public class StubRosterClient implements RosterClient {
                         new RosterResponse.MemberInfo(4L, "예손")
                 ),
                 List.of(
-                        new RosterResponse.ZoneInfo(10L, "샤워실"),
-                        new RosterResponse.ZoneInfo(20L, "화장실"),
-                        new RosterResponse.ZoneInfo(30L, "세면대"),
-                        new RosterResponse.ZoneInfo(40L, "바닥")
+                        new RosterResponse.ZoneInfo(1L, "샤워실"),
+                        new RosterResponse.ZoneInfo(2L, "화장실"),
+                        new RosterResponse.ZoneInfo(3L, "세면대"),
+                        new RosterResponse.ZoneInfo(4L, "바닥")
                 )
         );
     }

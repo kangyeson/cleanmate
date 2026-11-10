@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.ErrorResponseException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -34,17 +34,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error("잘못된 요청 값입니다: " + e.getName()));
     }
 
-    /** Spring MVC 표준 예외 (404 NoResourceFound, 405 MethodNotAllowed 등) → 원래 상태 코드 유지 */
-    @ExceptionHandler(ErrorResponseException.class)
-    public ResponseEntity<ApiResponse<Void>> handleErrorResponse(ErrorResponseException e) {
-        return ResponseEntity
-                .status(e.getStatusCode())
-                .body(ApiResponse.error(e.getMessage()));
-    }
-
-    /** 예상치 못한 예외 → 500, 로그 기록 */
+    /** Spring 표준 예외(@Valid 400, 404, 405 등) + catch-all */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        if (e instanceof ErrorResponse er) {
+            return ResponseEntity.status(er.getStatusCode())
+                    .body(ApiResponse.error(er.getBody().getDetail()));
+        }
         log.error("Unhandled exception", e);
         return ResponseEntity.internalServerError().body(ApiResponse.error("서버 오류가 발생했습니다."));
     }

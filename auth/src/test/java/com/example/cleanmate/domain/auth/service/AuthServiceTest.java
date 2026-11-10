@@ -54,10 +54,10 @@ class AuthServiceTest {
 
     @Test
     void login_성공_관리자_role_ADMIN() {
-        String sessionId = service.login("민정", "1234");
+        String sessionId = service.login("예손", "1234");
 
         SessionData data = sessionStore.find(sessionId).orElseThrow();
-        assertEquals(1L,     data.memberId());
+        assertEquals(4L,      data.memberId());
         assertEquals("ADMIN", data.role());
     }
 
