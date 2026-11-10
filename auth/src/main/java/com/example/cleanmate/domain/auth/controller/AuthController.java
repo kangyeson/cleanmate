@@ -3,7 +3,7 @@ package com.example.cleanmate.domain.auth.controller;
 import com.example.cleanmate.domain.auth.dto.LoginRequest;
 import com.example.cleanmate.domain.auth.service.AuthService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
-import jakarta.servlet.http.Cookie;
+import com.example.cleanmate.global.web.SessionCookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -12,14 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Duration;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
-    private static final String SESSION_COOKIE = "CMSESSION";
-    private static final int COOKIE_MAX_AGE = (int) Duration.ofDays(7).getSeconds();
 
     private final AuthService authService;
 
@@ -36,7 +31,7 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
         String sessionId = authService.login(request.name(), request.password());
-        addSessionCookie(response, sessionId, COOKIE_MAX_AGE);
+        SessionCookie.addTo(response, sessionId, SessionCookie.MAX_AGE);
         return ApiResponse.ok();
     }
 
@@ -46,20 +41,12 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ApiResponse<Void> logout(
-            @CookieValue(name = SESSION_COOKIE, required = false) String sessionId,
+            @CookieValue(name = SessionCookie.NAME, required = false) String sessionId,
             HttpServletResponse response) {
         if (sessionId != null) {
             authService.logout(sessionId);
         }
-        addSessionCookie(response, "", 0); // 쿠키 만료
+        SessionCookie.addTo(response, "", 0); // 쿠키 만료
         return ApiResponse.ok();
-    }
-
-    private void addSessionCookie(HttpServletResponse response, String value, int maxAge) {
-        Cookie cookie = new Cookie(SESSION_COOKIE, value);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        response.addCookie(cookie);
     }
 }

@@ -17,12 +17,18 @@ import java.util.Optional;
 public class InMemoryMemberRepository implements MemberRepository {
 
     private final Map<Long, Member> store = new HashMap<>();
+    private long nextId = 1L;
 
+    /** 테스트용 빈 저장소 (RoomServiceTest에서 사용). */
+    public InMemoryMemberRepository() {}
+
+    /** AuthServiceTest용 초기 데이터 세팅 생성자. */
     public InMemoryMemberRepository(PasswordHasher hasher) {
         add(1L, "민정", MemberRole.MEMBER, 1, hasher);
         add(2L, "지현", MemberRole.MEMBER, 2, hasher);
         add(3L, "서현", MemberRole.MEMBER, 3, hasher);
         add(4L, "예손", MemberRole.ADMIN,  4, hasher);
+        nextId = 5L;
     }
 
     private void add(Long id, String name, MemberRole role, int order, PasswordHasher hasher) {
@@ -42,5 +48,19 @@ public class InMemoryMemberRepository implements MemberRepository {
                 .filter(m -> m.getRoomId().equals(roomId) && m.isActive())
                 .sorted(Comparator.comparingInt(Member::getTurnOrder))
                 .toList();
+    }
+
+    @Override
+    public Member save(Member member) {
+        long id = nextId++;
+        Member saved = new Member(id, member.getRoomId(), member.getName(), member.getRole(),
+                member.getPasswordHash(), member.isMustChangePw(), member.getTurnOrder(), member.isActive());
+        store.put(id, saved);
+        return saved;
+    }
+
+    /** 테스트용: 저장된 전체 멤버 목록 반환. */
+    public List<Member> findAll() {
+        return List.copyOf(store.values());
     }
 }

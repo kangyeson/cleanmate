@@ -31,3 +31,32 @@ POST http://localhost:8082/api/duty/2/done
 ### 9. 쿠키 없이 완료 — 기대: 401
 # @no-cookie-jar
 POST http://localhost:8082/api/duty/3/done
+
+### 10. 방 생성 (진행 중인 방이 있음) — 기대: 409 "이미 진행 중인 방이 있습니다."
+POST http://localhost:8081/api/rooms
+Content-Type: application/json
+
+{"roomName": "시험방", "adminName": "가을",
+  "members": [{"name": "가을", "password": "1234"}, {"name": "겨울", "password": "1234"}],
+  "zones": ["화장실", "바닥"]}
+
+### 11. 방 이름 빈 값 — 기대: 400 "방 이름은 필수입니다."
+POST http://localhost:8081/api/rooms
+Content-Type: application/json
+
+{"roomName": "", "adminName": "가을",
+  "members": [{"name": "가을", "password": "1234"}], "zones": ["화장실"]}
+
+### 12. 방 생성 (진행 중인 방 없음) — 기대: 201 + Set-Cookie CMSESSION
+POST http://localhost:8081/api/rooms
+Content-Type: application/json
+
+{"roomName": "시험방", "adminName": "가을",
+  "members": [{"name": "가을", "password": "1234"}, {"name": "겨울", "password": "1234"}],
+  "zones": ["화장실", "바닥"]}
+
+### 13. 새 방 현황 — 기대: 새 방 기준 2구역(화장실=가을, 바닥=겨울), 모두 PENDING
+GET http://localhost:8082/api/duty/week
+
+### 14. 내 구역 (12번 쿠키 = 가을, 관리자) — 기대: [화장실]
+GET http://localhost:8082/api/duty/mine

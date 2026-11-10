@@ -4,8 +4,12 @@ import com.example.cleanmate.domain.member.model.Member;
 import com.example.cleanmate.domain.member.model.MemberRole;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,5 +60,30 @@ public class JdbcMemberRepository implements MemberRepository {
                 """,
                 rowMapper, roomId
         );
+    }
+
+    @Override
+    public Member save(Member member) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(
+                    """
+                    INSERT INTO members (room_id, name, role, password_hash, must_change_pw, turn_order, active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setLong(1, member.getRoomId());
+            ps.setString(2, member.getName());
+            ps.setString(3, member.getRole().name());
+            ps.setString(4, member.getPasswordHash());
+            ps.setBoolean(5, member.isMustChangePw());
+            ps.setInt(6, member.getTurnOrder());
+            ps.setBoolean(7, member.isActive());
+            return ps;
+        }, keyHolder);
+        long newId = keyHolder.getKey().longValue();
+        return new Member(newId, member.getRoomId(), member.getName(), member.getRole(),
+                member.getPasswordHash(), member.isMustChangePw(), member.getTurnOrder(), member.isActive());
     }
 }
