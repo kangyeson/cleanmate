@@ -4,6 +4,7 @@
 -- 구역 id는 1/2/3/4, check.http와 맞춤
 -- 실제 사용 시에는 이 파일을 빼고 방 생성(POST /api/rooms)으로 시작한다.
 -- =====================================================================
+SET NAMES utf8mb4;
 USE cleanmate_auth;
 
 INSERT INTO rooms (id, name, start_week, end_date, status)

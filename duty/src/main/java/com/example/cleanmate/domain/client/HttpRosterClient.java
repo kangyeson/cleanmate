@@ -1,6 +1,7 @@
 package com.example.cleanmate.domain.client;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -30,12 +31,20 @@ public class HttpRosterClient implements RosterClient {
             RosterApiResponse response = restClient.get()
                     .uri("/internal/roster")
                     .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        if (res.getStatusCode().value() == 404) {
+                            throw new NoActiveRoomException();
+                        }
+                        throw new RosterUnavailableException();
+                    })
                     .body(RosterApiResponse.class);
 
             if (response == null || !response.success()) {
                 throw new RosterUnavailableException();
             }
             return response.result();
+        } catch (NoActiveRoomException | RosterUnavailableException e) {
+            throw e;
         } catch (RestClientException e) {
             throw new RosterUnavailableException();
         }

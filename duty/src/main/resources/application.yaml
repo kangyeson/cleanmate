@@ -1,12 +1,14 @@
 spring:
   application:
     name: cleanmate-duty
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/cleanmate_duty?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USER:duty_user}
+    password: ${DB_PASSWORD}
 
 server:
   port: 8082

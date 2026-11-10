@@ -15,6 +15,8 @@ import com.example.cleanmate.domain.duty.repository.DutyRepository;
 import com.example.cleanmate.global.event.DutyEvent;
 import com.example.cleanmate.global.event.EventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -44,7 +46,12 @@ public class DutyService {
     /**
      * 이번 주 현황을 반환한다.
      * 아직 배정이 없으면 먼저 생성한다.
+     *
+     * <p>READ_COMMITTED: REPEATABLE READ 기본값에서는 트랜잭션 시작 시 스냅샷이 고정되어,
+     * DuplicateKeyException 흡수 후 재조회 시 다른 트랜잭션이 커밋한 행이 보이지 않는다.
+     * READ_COMMITTED는 문장마다 최신 커밋을 읽으므로 재조회가 올바르게 동작한다.
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public WeekDutyResponse getWeekDuties() {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
@@ -56,7 +63,10 @@ public class DutyService {
     /**
      * 로그인한 사용자의 이번 주 담당 구역 목록을 반환한다.
      * 한 명이 여러 구역을 담당할 수 있으므로 List로 반환. 담당 구역 없으면 빈 리스트.
+     *
+     * <p>READ_COMMITTED: getWeekDuties와 같은 이유로 READ_COMMITTED를 사용한다.
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<WeekDutyResponse.DutyItem> getMyDuty(Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
@@ -73,6 +83,7 @@ public class DutyService {
      * 본인 담당 구역 완료 처리.
      * memberId == assigneeId 인 경우에만 허용.
      */
+    @Transactional
     public void markDone(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
@@ -85,7 +96,10 @@ public class DutyService {
             throw new AlreadyDoneException();
         }
         duty.markDone(memberId, weekCalendar.today());
-        dutyRepository.save(duty);
+        // AND status='PENDING' 조건으로 동시 완료 방지 — 0 rows 갱신 시 409
+        if (!dutyRepository.updateIfStatus(duty, DutyStatus.PENDING)) {
+            throw new AlreadyDoneException();
+        }
         eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, false));
     }
 
@@ -93,6 +107,7 @@ public class DutyService {
      * 대신 청소.
      * 본인 담당이 아닌 PENDING 구역에만 허용.
      */
+    @Transactional
     public void markSubstitute(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
@@ -105,7 +120,9 @@ public class DutyService {
             throw new AlreadyDoneException();
         }
         duty.markDone(memberId, weekCalendar.today());
-        dutyRepository.save(duty);
+        if (!dutyRepository.updateIfStatus(duty, DutyStatus.PENDING)) {
+            throw new AlreadyDoneException();
+        }
         eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, true));
     }
 
@@ -113,6 +130,7 @@ public class DutyService {
      * 완료 기록 취소.
      * 본인이 기록한 항목(doneById == memberId)만 취소 가능.
      */
+    @Transactional
     public void cancelRecord(Long zoneId, Long memberId) {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate weekStart = weekCalendar.currentMonday();
@@ -125,7 +143,9 @@ public class DutyService {
             throw new NotRecordOwnerException();
         }
         duty.cancel();
-        dutyRepository.save(duty);
+        if (!dutyRepository.updateIfStatus(duty, DutyStatus.DONE)) {
+            throw new AlreadyDoneException();
+        }
     }
 
     // ── 내부 헬퍼 ─────────────────────────────────────────────

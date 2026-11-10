@@ -10,6 +10,8 @@
 -- 인증 서버의 id 값을 그대로 저장할 뿐이고, 이름은 /internal/roster로 받는다.
 -- =====================================================================
 
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS cleanmate_auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS cleanmate_duty CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

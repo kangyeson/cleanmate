@@ -3,7 +3,6 @@ package com.example.cleanmate.domain.member.repository;
 import com.example.cleanmate.domain.member.model.Member;
 import com.example.cleanmate.domain.member.model.MemberRole;
 import com.example.cleanmate.global.security.PasswordHasher;
-import org.springframework.stereotype.Repository;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -12,13 +11,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 개발·테스트용 메모리 MemberRepository.
- * 3단계에서 JdbcMemberRepository로 교체.
- *
- * 초기 비밀번호: 모두 "1234"
- * ID는 StubRosterClient(duty 서버)와 동일하게 맞춤.
+ * 단위 테스트 전용 메모리 MemberRepository. Spring 빈으로 등록하지 않는다.
+ * 프로덕션에서는 JdbcMemberRepository가 MemberRepository 역할을 맡는다.
  */
-@Repository
 public class InMemoryMemberRepository implements MemberRepository {
 
     private final Map<Long, Member> store = new HashMap<>();
@@ -36,10 +31,8 @@ public class InMemoryMemberRepository implements MemberRepository {
 
     @Override
     public Optional<Member> findByName(String name) {
-        // TODO(3단계): JdbcMemberRepository에서는 현재 활성 방(roomId)도 함께 필터링할 것.
-        //   같은 이름의 멤버가 다른 방에 있을 수 있으므로 name + roomId 조합으로 조회해야 함.
         return store.values().stream()
-                .filter(m -> m.getName().equals(name))
+                .filter(m -> m.getName().equals(name) && m.isActive())
                 .findFirst();
     }
 

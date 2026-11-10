@@ -6,9 +6,11 @@ import com.example.cleanmate.domain.duty.exception.AlreadyDoneException;
 import com.example.cleanmate.domain.duty.exception.DutyNotFoundException;
 import com.example.cleanmate.domain.duty.exception.NotAssigneeException;
 import com.example.cleanmate.domain.duty.exception.NotRecordOwnerException;
+import com.example.cleanmate.domain.duty.model.Duty;
 import com.example.cleanmate.domain.duty.model.DutyStatus;
 import com.example.cleanmate.domain.duty.model.RotationPolicy;
 import com.example.cleanmate.domain.duty.model.WeekCalendar;
+import com.example.cleanmate.domain.duty.repository.DutyRepository;
 import com.example.cleanmate.domain.duty.repository.InMemoryDutyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -108,6 +110,28 @@ class DutyServiceTest {
         service.markDone(ZONE_샤워실, MEMBER_민정);
         assertThrows(AlreadyDoneException.class,
                 () -> service.markDone(ZONE_샤워실, MEMBER_민정));
+    }
+
+    @Test
+    void markDone_동시_완료_경쟁에서_updateIfStatus_false이면_AlreadyDoneException() {
+        // updateIfStatus가 항상 false를 반환하는 저장소로 동시 완료 패배 상황 재현
+        DutyRepository neverUpdates = new InMemoryDutyRepository() {
+            @Override
+            public boolean updateIfStatus(Duty duty, DutyStatus requiredCurrentStatus) {
+                return false;  // 다른 요청이 먼저 완료한 상황
+            }
+        };
+        DutyService raceService = new DutyService(
+                neverUpdates,
+                new StubRosterClient(),
+                new WeekCalendar(FIXED_CLOCK),
+                new RotationPolicy(),
+                event -> {}
+        );
+        raceService.getWeekDuties();  // 배정 생성
+
+        assertThrows(AlreadyDoneException.class,
+                () -> raceService.markDone(ZONE_샤워실, MEMBER_민정));
     }
 
     @Test
