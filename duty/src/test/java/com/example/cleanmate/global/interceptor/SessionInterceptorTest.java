@@ -1,5 +1,6 @@
 package com.example.cleanmate.global.interceptor;
 
+import com.example.cleanmate.global.exception.PasswordChangeRequiredException;
 import com.example.cleanmate.global.exception.UnauthorizedException;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.session.SessionStore;
@@ -16,10 +17,16 @@ class SessionInterceptorTest {
 
     // 고정 세션 UUID와 대응하는 SessionData
     private static final String VALID_ID  = "valid-session-uuid";
-    private static final SessionData SESSION = new SessionData(2L, 1L, "MEMBER", "지현");
+    private static final SessionData SESSION = new SessionData(2L, 1L, "MEMBER", "지현", false);
 
-    private final SessionStore stubStore = sessionId ->
-            VALID_ID.equals(sessionId) ? Optional.of(SESSION) : Optional.empty();
+    private static final String MCP_ID = "mcp-session-uuid";
+    private static final SessionData MCP_SESSION = new SessionData(3L, 1L, "MEMBER", "서현", true);
+
+    private final SessionStore stubStore = sessionId -> {
+        if (VALID_ID.equals(sessionId)) return Optional.of(SESSION);
+        if (MCP_ID.equals(sessionId))   return Optional.of(MCP_SESSION);
+        return Optional.empty();
+    };
 
     private final SessionInterceptor interceptor = new SessionInterceptor(stubStore);
 
@@ -65,5 +72,23 @@ class SessionInterceptorTest {
         request.setCookies(new Cookie("CMSESSION", VALID_ID));
         interceptor.preHandle(request, new MockHttpServletResponse(), null);
         assertEquals(2L, request.getAttribute(SessionInterceptor.MEMBER_ATTR));
+    }
+
+    // ── mustChangePw 케이스 ───────────────────────────────────
+
+    @Test
+    void mustChangePw_true_이고_POST면_403() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/duty/done");
+        request.setCookies(new Cookie("CMSESSION", MCP_ID));
+        assertThrows(PasswordChangeRequiredException.class,
+                () -> interceptor.preHandle(request, new MockHttpServletResponse(), null));
+    }
+
+    @Test
+    void mustChangePw_true_이어도_GET이면_통과() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/duty/mine");
+        request.setCookies(new Cookie("CMSESSION", MCP_ID));
+        boolean result = interceptor.preHandle(request, new MockHttpServletResponse(), null);
+        assertTrue(result);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.cleanmate.global.interceptor;
 
+import com.example.cleanmate.global.exception.PasswordChangeRequiredException;
 import com.example.cleanmate.global.exception.UnauthorizedException;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.session.SessionStore;
@@ -33,8 +34,17 @@ public class SessionInterceptor implements HandlerInterceptor {
         SessionData session = sessionStore.find(sessionId)
                 .orElseThrow(UnauthorizedException::new);
 
+        if (Boolean.TRUE.equals(session.mustChangePw()) && isMutationRequest(request)) {
+            throw new PasswordChangeRequiredException();
+        }
+
         request.setAttribute(MEMBER_ATTR, session.memberId());
         return true;
+    }
+
+    private boolean isMutationRequest(HttpServletRequest request) {
+        String method = request.getMethod();
+        return "POST".equals(method) || "DELETE".equals(method);
     }
 
     private String extractCookie(HttpServletRequest request) {
