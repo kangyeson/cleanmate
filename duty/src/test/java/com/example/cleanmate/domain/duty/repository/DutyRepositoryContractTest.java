@@ -162,4 +162,25 @@ abstract class DutyRepositoryContractTest {
 
         assertFalse(result);
     }
+
+    @Test
+    void markMissedBefore_지난주_PENDING은_MISSED로_이번주와_DONE은_그대로() {
+        LocalDate lastWeek    = LocalDate.of(2026, 11, 2);
+        LocalDate currentWeek = LocalDate.of(2026, 11, 9);
+
+        Duty past = repo.save(Duty.newAssignment(ROOM_ID, lastWeek, ZONE_1, 1L));
+        repo.save(Duty.newAssignment(ROOM_ID, currentWeek, ZONE_2, 2L));
+        Duty done = repo.save(Duty.newAssignment(ROOM_ID, lastWeek, 3L, 3L));
+
+        // done을 DONE 상태로 갱신
+        done.markDone(3L, lastWeek.plusDays(1));
+        repo.save(done);
+
+        int updated = repo.markMissedBefore(ROOM_ID, currentWeek);
+
+        assertEquals(1, updated);
+        assertEquals(DutyStatus.MISSED,  repo.findByRoomAndWeekAndZone(ROOM_ID, lastWeek,    ZONE_1).orElseThrow().getStatus());
+        assertEquals(DutyStatus.PENDING, repo.findByRoomAndWeekAndZone(ROOM_ID, currentWeek, ZONE_2).orElseThrow().getStatus());
+        assertEquals(DutyStatus.DONE,    repo.findByRoomAndWeekAndZone(ROOM_ID, lastWeek,    3L).orElseThrow().getStatus());
+    }
 }

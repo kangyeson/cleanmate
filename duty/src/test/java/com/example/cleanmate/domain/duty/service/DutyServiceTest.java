@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -198,6 +199,89 @@ class DutyServiceTest {
         service.getWeekDuties();
         assertThrows(AlreadyDoneException.class,
                 () -> service.cancelRecord(ZONE_샤워실, MEMBER_민정));
+    }
+
+    // ── closePastWeeks ────────────────────────────────────────
+
+    /**
+     * 고정 날짜: 2026-11-16(월) → currentMonday = 2026-11-16
+     * StubRosterClient.startWeek() = 2026-11-02
+     * 따라서 11/2 주와 11/9 주가 "지난 주"
+     */
+    private static final Clock CLOCK_1116 =
+            Clock.fixed(LocalDate.of(2026, 11, 16).atStartOfDay(SEOUL).toInstant(), SEOUL);
+
+    @Test
+    void closePastWeeks_지난주_PENDING이_MISSED로() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(
+                repo,
+                new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116),
+                new RotationPolicy(),
+                event -> {}
+        );
+
+        // closePastWeeks 실행 — 11/2, 11/9 주 배정 생성 후 MISSED로 확정
+        svc.closePastWeeks();
+
+        // 11/2 주와 11/9 주의 모든 duty가 MISSED여야 한다
+        LocalDate week1 = LocalDate.of(2026, 11, 2);
+        LocalDate week2 = LocalDate.of(2026, 11, 9);
+        List<Duty> allDuties = repo.findByRoom(1L);
+        assertFalse(allDuties.isEmpty());
+        // 11/16 주(현재 주) 배정은 없어야 한다
+        LocalDate currentWeek = LocalDate.of(2026, 11, 16);
+        assertTrue(allDuties.stream().noneMatch(d -> d.getWeekStart().equals(currentWeek)));
+        // 지난 주 배정은 모두 MISSED
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().isBefore(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus(),
+                        "주 " + d.getWeekStart() + " zone " + d.getZoneId() + "이 MISSED여야 합니다."));
+    }
+
+    @Test
+    void closePastWeeks_두번_실행해도_결과_같음() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(
+                repo,
+                new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116),
+                new RotationPolicy(),
+                event -> {}
+        );
+
+        svc.closePastWeeks();
+        svc.closePastWeeks();  // 두 번째 실행
+
+        List<Duty> allDuties = repo.findByRoom(1L);
+        LocalDate currentWeek = LocalDate.of(2026, 11, 16);
+        // 여전히 지난 주 배정만 있고 모두 MISSED
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().isBefore(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus()));
+    }
+
+    @Test
+    void closePastWeeks_빈_주_배정_생성_후_확정() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(
+                repo,
+                new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116),
+                new RotationPolicy(),
+                event -> {}
+        );
+
+        // 실행 전에는 배정 없음
+        assertTrue(repo.findByRoom(1L).isEmpty());
+
+        svc.closePastWeeks();
+
+        // 실행 후: 11/2, 11/9 각각 4개 구역 = 8개 duty, 모두 MISSED
+        List<Duty> allDuties = repo.findByRoom(1L);
+        assertEquals(8, allDuties.size());
+        allDuties.forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus()));
     }
 
     // ── 헬퍼 ─────────────────────────────────────────────────
