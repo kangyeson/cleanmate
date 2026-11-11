@@ -30,4 +30,10 @@ public interface DutyRepository {
     boolean existsByRoomAndWeek(Long roomId, LocalDate weekStart);
 
     List<Duty> findByRoom(Long roomId);
+
+    /**
+     * room_id=roomId이고 week_start < before이고 status=PENDING인 행을 MISSED로 갱신.
+     * 갱신된 행 수 반환.
+     */
+    int markMissedBefore(Long roomId, LocalDate before);
 }

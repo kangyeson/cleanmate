@@ -79,4 +79,18 @@ public class InMemoryDutyRepository implements DutyRepository {
                 .map(this::copy)
                 .toList();
     }
+
+    @Override
+    public synchronized int markMissedBefore(Long roomId, LocalDate before) {
+        int count = 0;
+        for (Duty storeEntry : store.values()) {
+            if (storeEntry.getRoomId().equals(roomId)
+                    && storeEntry.getWeekStart().isBefore(before)
+                    && storeEntry.getStatus() == DutyStatus.PENDING) {
+                storeEntry.markMissed();
+                count++;
+            }
+        }
+        return count;
+    }
 }

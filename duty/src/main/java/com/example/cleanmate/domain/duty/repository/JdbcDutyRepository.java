@@ -135,4 +135,12 @@ public class JdbcDutyRepository implements DutyRepository {
     public List<Duty> findByRoom(Long roomId) {
         return jdbc.query("SELECT * FROM duties WHERE room_id = ?", rowMapper, roomId);
     }
+
+    @Override
+    public int markMissedBefore(Long roomId, LocalDate before) {
+        return jdbc.update(
+            "UPDATE duties SET status='MISSED' WHERE room_id=? AND week_start < ? AND status='PENDING'",
+            roomId, Date.valueOf(before)
+        );
+    }
 }

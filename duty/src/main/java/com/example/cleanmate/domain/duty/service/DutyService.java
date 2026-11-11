@@ -1,5 +1,6 @@
 package com.example.cleanmate.domain.duty.service;
 
+import com.example.cleanmate.domain.client.NoActiveRoomException;
 import com.example.cleanmate.domain.client.RosterClient;
 import com.example.cleanmate.domain.client.RosterResponse;
 import com.example.cleanmate.domain.duty.dto.WeekDutyResponse;
@@ -164,6 +165,27 @@ public class DutyService {
         for (Map.Entry<Long, Long> e : assignments.entrySet()) {
             dutyRepository.save(Duty.newAssignment(roster.roomId(), weekStart, e.getKey(), e.getValue()));
         }
+    }
+
+    /**
+     * (a) 방 시작 주부터 이번 주 전까지 배정이 없는 주를 채우고
+     * (b) 그 중 PENDING 상태를 MISSED로 일괄 확정.
+     * 멱등: 여러 번 실행해도 같은 결과.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void closePastWeeks() {
+        RosterResponse roster = rosterClient.getRoster();
+        LocalDate currentMonday = weekCalendar.currentMonday();
+
+        // 빠진 주 배정 채우기
+        LocalDate week = roster.startWeek();
+        while (week.isBefore(currentMonday)) {
+            assignWeekIfAbsent(week, roster);
+            week = week.plusWeeks(1);
+        }
+
+        // 지난 주까지 PENDING → MISSED
+        dutyRepository.markMissedBefore(roster.roomId(), currentMonday);
     }
 
     private WeekDutyResponse.DutyItem toItem(Duty d, RosterResponse roster) {
