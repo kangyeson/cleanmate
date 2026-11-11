@@ -1,12 +1,14 @@
 package com.example.cleanmate.domain.auth.controller;
 
 import com.example.cleanmate.domain.auth.dto.LoginRequest;
+import com.example.cleanmate.domain.auth.dto.MeResponse;
 import com.example.cleanmate.domain.auth.service.AuthService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
 import com.example.cleanmate.global.web.SessionCookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +22,16 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    /**
+     * 현재 로그인한 사용자 정보 조회.
+     * CMSESSION 쿠키가 없거나 Redis에 없으면 401.
+     */
+    @GetMapping("/me")
+    public ApiResponse<MeResponse> me(
+            @CookieValue(name = SessionCookie.NAME, required = false) String sessionId) {
+        return ApiResponse.ok(authService.currentUser(sessionId));
     }
 
     /**

@@ -133,6 +133,24 @@ abstract class DutyRepositoryContractTest {
     }
 
     @Test
+    void findByRoom_해당_방_배정만_반환() {
+        Long room2 = 2L;
+        // 방 1L의 duty 2개
+        repo.save(Duty.newAssignment(ROOM_ID, WEEK, ZONE_1, ASSIGNEE));
+        repo.save(Duty.newAssignment(ROOM_ID, WEEK, ZONE_2, ASSIGNEE));
+        // 방 2L의 duty 1개
+        repo.save(Duty.newAssignment(room2, WEEK, ZONE_1, ASSIGNEE));
+
+        List<Duty> room1Duties = repo.findByRoom(ROOM_ID);
+        List<Duty> room2Duties = repo.findByRoom(room2);
+
+        assertEquals(2, room1Duties.size());
+        assertEquals(1, room2Duties.size());
+        assertTrue(room1Duties.stream().allMatch(d -> d.getRoomId().equals(ROOM_ID)));
+        assertTrue(room2Duties.stream().allMatch(d -> d.getRoomId().equals(room2)));
+    }
+
+    @Test
     void updateIfStatus_기대_상태_불일치하면_false_반환() {
         Duty saved = repo.save(Duty.newAssignment(ROOM_ID, WEEK, ZONE_1, ASSIGNEE));
         saved.markDone(ASSIGNEE, WEEK.plusDays(1));

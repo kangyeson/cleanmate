@@ -1,8 +1,10 @@
 package com.example.cleanmate.domain.auth.service;
 
+import com.example.cleanmate.domain.auth.dto.MeResponse;
 import com.example.cleanmate.domain.auth.exception.InvalidCredentialsException;
 import com.example.cleanmate.domain.member.model.Member;
 import com.example.cleanmate.domain.member.repository.MemberRepository;
+import com.example.cleanmate.global.exception.CleanmateException;
 import com.example.cleanmate.global.security.PasswordHasher;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.session.SessionStore;
@@ -48,5 +50,18 @@ public class AuthService {
     /** 로그아웃 — Redis 키 삭제 */
     public void logout(String sessionId) {
         sessionStore.delete(sessionId);
+    }
+
+    /**
+     * 현재 로그인한 사용자 정보 반환.
+     * sessionId 가 null 이거나 Redis 에 세션이 없으면 401.
+     */
+    public MeResponse currentUser(String sessionId) {
+        if (sessionId == null) {
+            throw new CleanmateException("로그인이 필요합니다.", 401);
+        }
+        SessionData data = sessionStore.find(sessionId)
+                .orElseThrow(() -> new CleanmateException("로그인이 필요합니다.", 401));
+        return new MeResponse(data.memberId(), data.name(), data.role());
     }
 }

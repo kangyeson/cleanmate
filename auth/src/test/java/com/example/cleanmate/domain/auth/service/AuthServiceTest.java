@@ -1,7 +1,9 @@
 package com.example.cleanmate.domain.auth.service;
 
+import com.example.cleanmate.domain.auth.dto.MeResponse;
 import com.example.cleanmate.domain.auth.exception.InvalidCredentialsException;
 import com.example.cleanmate.domain.member.repository.InMemoryMemberRepository;
+import com.example.cleanmate.global.exception.CleanmateException;
 import com.example.cleanmate.global.security.PasswordHasher;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.session.SessionStore;
@@ -88,6 +90,25 @@ class AuthServiceTest {
         String sessionId = service.login("지현", "1234");
         service.logout(sessionId);
         assertTrue(sessionStore.find(sessionId).isEmpty());
+    }
+
+    // ── me ───────────────────────────────────────────────────
+
+    @Test
+    void me_세션있으면_본인정보_반환() {
+        String sessionId = service.login("예손", "1234");
+        MeResponse me = service.currentUser(sessionId);
+
+        assertEquals(4L, me.memberId());
+        assertEquals("예손", me.name());
+        assertEquals("ADMIN", me.role());
+    }
+
+    @Test
+    void me_세션없으면_401() {
+        CleanmateException ex = assertThrows(CleanmateException.class,
+                () -> service.currentUser(null));
+        assertEquals(401, ex.getStatus());
     }
 
     // ── 테스트용 인메모리 SessionStore ───────────────────────

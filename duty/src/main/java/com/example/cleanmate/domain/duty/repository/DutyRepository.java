@@ -28,4 +28,6 @@ public interface DutyRepository {
     List<Duty> findByRoomAndWeek(Long roomId, LocalDate weekStart);
 
     boolean existsByRoomAndWeek(Long roomId, LocalDate weekStart);
+
+    List<Duty> findByRoom(Long roomId);
 }

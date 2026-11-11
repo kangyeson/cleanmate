@@ -130,4 +130,9 @@ public class JdbcDutyRepository implements DutyRepository {
         );
         return count != null && count > 0;
     }
+
+    @Override
+    public List<Duty> findByRoom(Long roomId) {
+        return jdbc.query("SELECT * FROM duties WHERE room_id = ?", rowMapper, roomId);
+    }
 }

@@ -71,4 +71,12 @@ public class InMemoryDutyRepository implements DutyRepository {
         return store.values().stream()
                 .anyMatch(d -> d.getRoomId().equals(roomId) && d.getWeekStart().equals(weekStart));
     }
+
+    @Override
+    public List<Duty> findByRoom(Long roomId) {
+        return store.values().stream()
+                .filter(d -> d.getRoomId().equals(roomId))
+                .map(this::copy)
+                .toList();
+    }
 }
