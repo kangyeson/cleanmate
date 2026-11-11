@@ -117,3 +117,13 @@ table { width: 100%; border-collapse: collapse; background: #fff; }
 th, td { padding: 8px 6px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
 th { background: #f0f2f5; font-weight: normal; color: #555; }
 td.name { text-align: left; font-weight: bold; }
+
+/* ── 주별 기록 ── */
+.week-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.week-table th, .week-table td { padding: 6px 4px; border-bottom: 1px solid #eee; text-align: center; font-size: 13px; }
+.week-table th { background: #f0f2f5; font-weight: normal; color: #555; }
+.week-table td.name { text-align: left; font-weight: bold; }
+.week-score { font-size: 13px; color: #555; }
+
+/* ── 비밀번호 변경 필요 강조 ── */
+.pw-required { color: #b54708 !important; font-weight: bold; }

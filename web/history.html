@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>주별 기록 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <h1>주별 기록</h1>
+    <div id="message"></div>
+
+    <section id="no-room" class="card" hidden>
+        <p>진행 중인 방이 없습니다.</p>
+        <a class="button" href="create-room.html">방 만들기</a>
+    </section>
+
+    <section id="history-section" hidden>
+        <div id="history-list"></div>
+    </section>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/history.js"></script>
+</body>
+</html>

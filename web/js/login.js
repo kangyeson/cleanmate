@@ -34,7 +34,10 @@ $(function () {
         const $btn = $(this).find('button[type=submit]').prop('disabled', true);
         Api.post('/api/auth/login', { name: name, password: password })
             .then(function () {
-                location.href = 'index.html';    // 로그인 성공 → 이번 주 화면
+                return Api.me();
+            })
+            .then(function (me) {
+                location.href = me && me.mustChangePw ? 'change-password.html' : 'index.html';
             })
             .catch(function (err) {
                 $btn.prop('disabled', false);

@@ -112,7 +112,11 @@ const Page = (function () {
         let right;
         if (me) {
             const badge = me.role === 'ADMIN' ? ' <span class="badge">관리자</span>' : '';
+            const pwLink = me.mustChangePw
+                ? '<a href="change-password.html" class="link-btn pw-required">비밀번호 변경 필요</a>'
+                : '<a href="change-password.html" class="link-btn">비밀번호 변경</a>';
             right = '<span class="who">' + esc(me.name) + badge + '</span>'
+                + pwLink
                 + '<button type="button" id="logout-btn" class="link-btn">로그아웃</button>';
         } else {
             right = '<a href="login.html">로그인</a>';
@@ -124,6 +128,7 @@ const Page = (function () {
             + '  <nav>'
             + '    <a href="index.html">이번 주</a>'
             + '    <a href="stats.html">누적 기록</a>'
+            + '    <a href="history.html">주별 기록</a>'
             + '  </nav>'
             + '  <div class="user">' + right + '</div>'
             + '</div>'
@@ -135,11 +140,24 @@ const Page = (function () {
         });
     }
 
+    /**
+     * mustChangePw=true인 로그인 사용자를 비밀번호 변경 화면으로 보낸다.
+     * @returns {boolean} true면 redirect 발생 — 호출부에서 이후 코드를 중단해야 한다.
+     */
+    function guardMustChangePw(me) {
+        if (me && me.mustChangePw) {
+            location.href = 'change-password.html';
+            return true;
+        }
+        return false;
+    }
+
     return {
         esc: esc,
         shortDate: shortDate,
         showMessage: showMessage,
         clearMessage: clearMessage,
-        renderHeader: renderHeader
+        renderHeader: renderHeader,
+        guardMustChangePw: guardMustChangePw
     };
 })();

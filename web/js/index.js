@@ -26,6 +26,7 @@ function load(keepMessage) {
     Api.me()
         .then(function (me) {
             Page.renderHeader(me);
+            if (Page.guardMustChangePw(me)) return;
             return Api.get('/api/duty/week').then(function (week) {
                 renderWeek(week, me);
                 if (me) {
