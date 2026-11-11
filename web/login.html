@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>로그인 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <h1>로그인</h1>
+    <div id="message"></div>
+
+    <form id="login-form" class="card">
+        <label for="name">이름</label>
+        <input type="text" id="name" autocomplete="username" required>
+
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+
+        <div class="actions">
+            <button type="submit">로그인</button>
+        </div>
+    </form>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

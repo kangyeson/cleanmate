@@ -1,6 +1,9 @@
 spring:
   application:
     name: cleanmate-duty
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}

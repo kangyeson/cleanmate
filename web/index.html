@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>이번 주 청소 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <div id="message"></div>
+
+    <!-- 진행 중인 방이 없을 때만 보임 (R1 거절 조건) -->
+    <section id="no-room" class="card" hidden>
+        <p>진행 중인 방이 없습니다. 관리자가 방을 생성해야 합니다.</p>
+        <a class="button" href="create-room.html">방 만들기</a>
+    </section>
+
+    <!-- 로그인했을 때만 보임: 내 담당 구역 (R4) -->
+    <section id="mine-section" hidden>
+        <h2>내 담당</h2>
+        <div id="mine-list"></div>
+    </section>
+
+    <!-- 이번 주 현황: 로그인 없이 누구나 (R1) -->
+    <section id="week-section" hidden>
+        <h1 id="week-title">이번 주 청소</h1>
+        <div class="summary" id="week-summary"></div>
+        <div id="week-list"></div>
+        <p class="hint" id="login-hint" hidden>
+            청소를 기록하려면 <a href="login.html">로그인</a>하세요.
+        </p>
+    </section>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>

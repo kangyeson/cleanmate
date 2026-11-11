@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>방 만들기 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <h1>방 만들기</h1>
+    <div id="message"></div>
+
+    <form id="room-form">
+        <div class="card">
+            <label for="room-name">방 이름</label>
+            <input type="text" id="room-name" placeholder="예: 2026-2학기 525호">
+        </div>
+
+        <div class="card">
+            <label>룸메이트 (위에서부터 청소 순번)</label>
+            <p class="hint">관리자도 순번에 들어갑니다. 관리자를 하나 고르고, 관리자는 본인 비밀번호를, 나머지는 첫 로그인 때 바꿀 초기 비밀번호를 적으세요. (4자 이상)</p>
+            <div id="member-rows"></div>
+            <button type="button" class="secondary" id="add-member">+ 룸메이트 추가</button>
+        </div>
+
+        <div class="card">
+            <label>청소 구역 (위에서부터 순서)</label>
+            <div id="zone-rows"></div>
+            <button type="button" class="secondary" id="add-zone">+ 구역 추가</button>
+        </div>
+
+        <div class="actions">
+            <button type="submit">방 만들기</button>
+        </div>
+    </form>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/create-room.js"></script>
+</body>
+</html>

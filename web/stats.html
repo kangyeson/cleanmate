@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>누적 기록 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <h1>누적 기록</h1>
+    <div id="message"></div>
+
+    <section id="no-room" class="card" hidden>
+        <p>진행 중인 방이 없습니다.</p>
+        <a class="button" href="create-room.html">방 만들기</a>
+    </section>
+
+    <section id="stats-section" hidden>
+        <p class="hint">지난 주까지 끝난 주만 셉니다. 이번 주는 <a href="index.html">이번 주</a> 화면에서 확인하세요.</p>
+        <table>
+            <thead>
+            <tr>
+                <th>이름</th>
+                <th>담당</th>
+                <th>본인 완료</th>
+                <th>미완료</th>
+                <th>대신 청소</th>
+                <th>이행률</th>
+            </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+        </table>
+    </section>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/stats.js"></script>
+</body>
+</html>
