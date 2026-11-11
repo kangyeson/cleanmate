@@ -51,6 +51,15 @@ public class JdbcMemberRepository implements MemberRepository {
     }
 
     @Override
+    public Optional<Member> findById(Long id) {
+        List<Member> result = jdbc.query(
+                "SELECT * FROM members WHERE id = ?",
+                rowMapper, id
+        );
+        return result.stream().findFirst();
+    }
+
+    @Override
     public List<Member> findAllByRoomIdOrderByTurnOrder(Long roomId) {
         return jdbc.query(
                 """
@@ -85,5 +94,13 @@ public class JdbcMemberRepository implements MemberRepository {
         long newId = keyHolder.getKey().longValue();
         return new Member(newId, member.getRoomId(), member.getName(), member.getRole(),
                 member.getPasswordHash(), member.isMustChangePw(), member.getTurnOrder(), member.isActive());
+    }
+
+    @Override
+    public void updatePassword(Long memberId, String newHash) {
+        jdbc.update(
+            "UPDATE members SET password_hash=?, must_change_pw=FALSE WHERE id=?",
+            newHash, memberId
+        );
     }
 }

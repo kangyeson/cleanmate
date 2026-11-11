@@ -8,6 +8,7 @@ import com.example.cleanmate.global.exception.CleanmateException;
 import com.example.cleanmate.global.security.PasswordHasher;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.session.SessionStore;
+import com.example.cleanmate.global.validation.InputValidator;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -42,7 +43,8 @@ public class AuthService {
 
         SessionData data = new SessionData(
                 member.getId(), member.getRoomId(),
-                member.getRole().name(), member.getName()
+                member.getRole().name(), member.getName(),
+                member.isMustChangePw()
         );
         return sessionStore.create(data);
     }
@@ -62,6 +64,35 @@ public class AuthService {
         }
         SessionData data = sessionStore.find(sessionId)
                 .orElseThrow(() -> new CleanmateException("로그인이 필요합니다.", 401));
-        return new MeResponse(data.memberId(), data.name(), data.role());
+        return new MeResponse(data.memberId(), data.name(), data.role(),
+            Boolean.TRUE.equals(data.mustChangePw()));
+    }
+
+    /**
+     * 비밀번호 변경 + must_change_pw = false.
+     * 성공 시 Redis 세션을 갱신.
+     */
+    public void changePassword(String sessionId, String currentPassword, String newPassword) {
+        if (sessionId == null) {
+            throw new CleanmateException("로그인이 필요합니다.", 401);
+        }
+        SessionData session = sessionStore.find(sessionId)
+            .orElseThrow(() -> new CleanmateException("로그인이 필요합니다.", 401));
+
+        Member member = memberRepository.findById(session.memberId())
+            .orElseThrow(() -> new CleanmateException("회원을 찾을 수 없습니다.", 404));
+
+        if (!passwordHasher.matches(currentPassword, member.getPasswordHash())) {
+            throw new CleanmateException("현재 비밀번호가 올바르지 않습니다.", 400);
+        }
+        InputValidator.validatePassword(newPassword);
+
+        memberRepository.updatePassword(member.getId(), passwordHasher.hash(newPassword));
+
+        // Redis 세션의 mustChangePw 갱신
+        SessionData updated = new SessionData(
+            session.memberId(), session.roomId(), session.role(), session.name(), false
+        );
+        sessionStore.update(sessionId, updated);
     }
 }

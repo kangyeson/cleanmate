@@ -36,6 +36,11 @@ public class InMemoryMemberRepository implements MemberRepository {
     }
 
     @Override
+    public Optional<Member> findById(Long id) {
+        return Optional.ofNullable(store.get(id));
+    }
+
+    @Override
     public Optional<Member> findByName(String name) {
         return store.values().stream()
                 .filter(m -> m.getName().equals(name) && m.isActive())
@@ -57,6 +62,17 @@ public class InMemoryMemberRepository implements MemberRepository {
                 member.getPasswordHash(), member.isMustChangePw(), member.getTurnOrder(), member.isActive());
         store.put(id, saved);
         return saved;
+    }
+
+    @Override
+    public void updatePassword(Long memberId, String newHash) {
+        Member existing = store.get(memberId);
+        if (existing == null) return;
+        Member updated = new Member(
+            existing.getId(), existing.getRoomId(), existing.getName(), existing.getRole(),
+            newHash, false, existing.getTurnOrder(), existing.isActive()
+        );
+        store.put(memberId, updated);
     }
 
     /** 테스트용: 저장된 전체 멤버 목록 반환. */
