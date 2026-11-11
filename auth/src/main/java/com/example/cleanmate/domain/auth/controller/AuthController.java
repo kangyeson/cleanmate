@@ -2,6 +2,7 @@ package com.example.cleanmate.domain.auth.controller;
 
 import com.example.cleanmate.domain.auth.dto.LoginRequest;
 import com.example.cleanmate.domain.auth.dto.MeResponse;
+import com.example.cleanmate.domain.auth.dto.PasswordChangeRequest;
 import com.example.cleanmate.domain.auth.service.AuthService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
 import com.example.cleanmate.global.web.SessionCookie;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +46,18 @@ public class AuthController {
             HttpServletResponse response) {
         String sessionId = authService.login(request.name(), request.password());
         SessionCookie.addTo(response, sessionId, SessionCookie.MAX_AGE);
+        return ApiResponse.ok();
+    }
+
+    /**
+     * 비밀번호 변경.
+     * 성공 시 Redis 세션의 mustChangePw 갱신.
+     */
+    @PutMapping("/password")
+    public ApiResponse<Void> changePassword(
+            @CookieValue(name = SessionCookie.NAME, required = false) String sessionId,
+            @Valid @RequestBody PasswordChangeRequest request) {
+        authService.changePassword(sessionId, request.currentPassword(), request.newPassword());
         return ApiResponse.ok();
     }
 

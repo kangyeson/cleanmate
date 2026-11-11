@@ -11,4 +11,7 @@ public interface SessionStore {
 
     /** 세션 삭제 (로그아웃) */
     void delete(String sessionId);
+
+    /** 기존 세션 ID의 값을 교체 (TTL 7일로 초기화) */
+    void update(String sessionId, SessionData data);
 }

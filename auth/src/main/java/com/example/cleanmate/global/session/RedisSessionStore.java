@@ -56,4 +56,14 @@ public class RedisSessionStore implements SessionStore {
     public void delete(String sessionId) {
         redis.delete(KEY_PREFIX + sessionId);
     }
+
+    @Override
+    public void update(String sessionId, SessionData data) {
+        try {
+            String json = objectMapper.writeValueAsString(data);
+            redis.opsForValue().set(KEY_PREFIX + sessionId, json, TTL);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("세션 직렬화 실패", e);
+        }
+    }
 }

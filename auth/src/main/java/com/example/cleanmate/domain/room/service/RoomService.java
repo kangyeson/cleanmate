@@ -123,7 +123,7 @@ public class RoomService {
         // 6. 관리자 세션 데이터 반환 (세션 생성은 컨트롤러에서 커밋 후 수행)
         return new SessionData(
                 adminMember.getId(), room.getId(),
-                MemberRole.ADMIN.name(), adminMember.getName()
+                MemberRole.ADMIN.name(), adminMember.getName(), false
         );
     }
 
