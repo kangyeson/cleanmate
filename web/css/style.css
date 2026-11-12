@@ -133,7 +133,8 @@ td.name { text-align: left; font-weight: bold; }
 .admin-table { width: 100%; border-collapse: collapse; background: #fff; }
 .admin-table th, .admin-table td { padding: 7px 6px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
 .admin-table th { background: #f0f2f5; font-weight: normal; color: #555; }
-.admin-table td.order-btns { width: 56px; text-align: center; }
+.admin-table th.order-btns,
+.admin-table td.order-btns { width: 36px; text-align: center; }
 .admin-table td.actions-col { white-space: nowrap; }
 .order-btn { font-size: 12px; padding: 2px 6px; background: #e9ebef; color: #333; border: 0; border-radius: 4px; cursor: pointer; margin: 0 1px; }
 .order-btn:disabled { opacity: .4; cursor: default; }
