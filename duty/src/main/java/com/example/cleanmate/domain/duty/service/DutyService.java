@@ -3,6 +3,7 @@ package com.example.cleanmate.domain.duty.service;
 import com.example.cleanmate.domain.client.NoActiveRoomException;
 import com.example.cleanmate.domain.client.RosterClient;
 import com.example.cleanmate.domain.client.RosterResponse;
+import com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest;
 import com.example.cleanmate.domain.duty.dto.WeekDutyResponse;
 import com.example.cleanmate.domain.duty.exception.AlreadyDoneException;
 import com.example.cleanmate.domain.duty.exception.DutyNotFoundException;
@@ -15,6 +16,8 @@ import com.example.cleanmate.domain.duty.model.WeekCalendar;
 import com.example.cleanmate.domain.duty.repository.DutyRepository;
 import com.example.cleanmate.global.event.DutyEvent;
 import com.example.cleanmate.global.event.EventPublisher;
+import com.example.cleanmate.global.exception.AdminOnlyException;
+import com.example.cleanmate.global.exception.CleanmateException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,15 +180,97 @@ public class DutyService {
         RosterResponse roster = rosterClient.getRoster();
         LocalDate currentMonday = weekCalendar.currentMonday();
 
-        // 빠진 주 배정 채우기
+        // 빠진 주 배정 채우기 (이번 주 포함)
         LocalDate week = roster.startWeek();
-        while (week.isBefore(currentMonday)) {
+        while (!week.isAfter(currentMonday)) {
             assignWeekIfAbsent(week, roster);
             week = week.plusWeeks(1);
         }
 
         // 지난 주까지 PENDING → MISSED
         dutyRepository.markMissedBefore(roster.roomId(), currentMonday);
+    }
+
+    /**
+     * 이번 주 배정이 없으면 생성한다 (멱등).
+     * 설정 변경(멤버·구역 추가·삭제·순번) 직전에 auth 서버가 호출.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void ensureCurrentWeek(Long roomId) {
+        RosterResponse roster = rosterClient.getRoster();
+        if (!roster.roomId().equals(roomId)) {
+            throw new CleanmateException("방 ID가 일치하지 않습니다.", 400);
+        }
+        closePastWeeks();
+    }
+
+    /**
+     * 방 종료: 빠진 주 채우기 + 이번 주 포함 모든 PENDING → MISSED
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void finalizeRoom(Long roomId) {
+        RosterResponse roster = rosterClient.getRoster();
+        if (!roster.roomId().equals(roomId)) {
+            throw new CleanmateException("방 ID가 일치하지 않습니다.", 400);
+        }
+        LocalDate currentMonday = weekCalendar.currentMonday();
+        LocalDate week = roster.startWeek();
+        while (!week.isAfter(currentMonday)) {
+            assignWeekIfAbsent(week, roster);
+            week = week.plusWeeks(1);
+        }
+        // 이번 주 포함 모든 PENDING → MISSED (다음 주 월요일을 cutoff)
+        dutyRepository.markMissedBefore(roster.roomId(), currentMonday.plusWeeks(1));
+    }
+
+    /**
+     * 지난 주 기록 보정 (관리자 전용).
+     * weekStart가 실제로 지난 주인지, doneById가 roster 멤버인지 검증.
+     */
+    @Transactional
+    public void correctLastWeek(Long requesterId, String requesterRole,
+                                 Long requesterRoomId, CorrectLastWeekRequest req) {
+        if (!"ADMIN".equals(requesterRole)) throw new AdminOnlyException();
+
+        RosterResponse roster = rosterClient.getRoster();
+
+        // 세션의 방이 현재 활성 방과 같은지 확인
+        if (!roster.roomId().equals(requesterRoomId)) {
+            throw new CleanmateException("로그인이 필요합니다.", 401);
+        }
+
+        LocalDate lastMonday = weekCalendar.lastMonday();
+
+        // weekStart가 지난 주인지 검증 (AC6-2-2)
+        if (!lastMonday.equals(req.weekStart())) {
+            throw new CleanmateException("지난 주 기록만 고칠 수 있습니다.", 400);
+        }
+
+        Duty duty = dutyRepository.findByRoomAndWeekAndZone(roster.roomId(), lastMonday, req.zoneId())
+            .orElseThrow(() -> new CleanmateException("해당 구역의 지난 주 기록을 찾을 수 없습니다.", 404));
+
+        if ("DONE".equals(req.status())) {
+            if (req.doneById() == null || req.doneDate() == null) {
+                throw new CleanmateException("완료 처리에는 청소한 사람과 완료일이 필요합니다.", 400);
+            }
+            // doneById가 이 방 멤버인지 검증
+            boolean validMember = roster.members().stream()
+                .anyMatch(m -> m.id().equals(req.doneById()));
+            if (!validMember) {
+                throw new CleanmateException("유효하지 않은 멤버입니다.", 400);
+            }
+            LocalDate lastSunday = lastMonday.plusDays(6);
+            if (req.doneDate().isBefore(lastMonday) || req.doneDate().isAfter(lastSunday)) {
+                throw new CleanmateException("완료일이 지난 주 범위(월~일)를 벗어납니다.", 400);
+            }
+            duty.correctAsDone(req.doneById(), req.doneDate());
+        } else if ("MISSED".equals(req.status())) {
+            duty.correctAsMissed();
+        } else {
+            throw new CleanmateException("status는 DONE 또는 MISSED여야 합니다.", 400);
+        }
+
+        dutyRepository.update(duty);
     }
 
     private WeekDutyResponse.DutyItem toItem(Duty d, RosterResponse roster) {

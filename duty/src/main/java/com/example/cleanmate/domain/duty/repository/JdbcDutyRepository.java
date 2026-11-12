@@ -46,6 +46,17 @@ public class JdbcDutyRepository implements DutyRepository {
         }
     }
 
+    @Override
+    public void update(Duty duty) {
+        jdbc.update(
+            "UPDATE duties SET status=?, done_by_id=?, done_date=? WHERE id=?",
+            duty.getStatus().name(),
+            duty.getDoneById(),
+            duty.getDoneDate() != null ? Date.valueOf(duty.getDoneDate()) : null,
+            duty.getId()
+        );
+    }
+
     private Duty insert(Duty duty) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         try {
@@ -76,16 +87,6 @@ public class JdbcDutyRepository implements DutyRepository {
             return findByRoomAndWeekAndZone(duty.getRoomId(), duty.getWeekStart(), duty.getZoneId())
                     .orElseThrow(() -> e);
         }
-    }
-
-    private void update(Duty duty) {
-        jdbc.update(
-                "UPDATE duties SET status = ?, done_by_id = ?, done_date = ? WHERE id = ?",
-                duty.getStatus().name(),
-                duty.getDoneById(),
-                duty.getDoneDate() != null ? Date.valueOf(duty.getDoneDate()) : null,
-                duty.getId()
-        );
     }
 
     /**

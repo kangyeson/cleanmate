@@ -44,7 +44,7 @@ public class StatsService {
                 .filter(d -> d.getWeekStart().isBefore(currentMonday))
                 .toList();
 
-        // 사람별 집계 객체 초기화
+        // 사람별 집계 객체 초기화 (활성·비활성 모두)
         Map<Long, Counter> counters = new HashMap<>();
         for (RosterResponse.MemberInfo m : roster.members()) {
             counters.put(m.id(), new Counter());
@@ -74,8 +74,12 @@ public class StatsService {
             }
         }
 
-        // 결과 조립 (roster 순번 그대로)
+        // 결과 조립 — 활성 멤버 or 기록이 있는 비활성 멤버만 포함
         List<MemberStat> stats = roster.members().stream()
+                .filter(m -> {
+                    Counter c = counters.get(m.id());
+                    return m.active() || (c != null && (c.assigned > 0 || c.substitute > 0));
+                })
                 .map(m -> {
                     Counter c = counters.get(m.id());
                     String rate = c.assigned == 0

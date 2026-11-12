@@ -81,6 +81,14 @@ public class InMemoryDutyRepository implements DutyRepository {
     }
 
     @Override
+    public synchronized void update(Duty duty) {
+        String k = key(duty.getRoomId(), duty.getWeekStart(), duty.getZoneId());
+        if (store.containsKey(k)) {
+            store.put(k, copy(duty));
+        }
+    }
+
+    @Override
     public synchronized int markMissedBefore(Long roomId, LocalDate before) {
         int count = 0;
         for (Duty storeEntry : store.values()) {

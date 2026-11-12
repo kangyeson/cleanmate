@@ -36,4 +36,7 @@ public interface DutyRepository {
      * 갱신된 행 수 반환.
      */
     int markMissedBefore(Long roomId, LocalDate before);
+
+    /** 무조건 UPDATE (보정용). */
+    void update(Duty duty);
 }

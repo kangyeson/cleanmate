@@ -89,6 +89,23 @@ public class Duty {
         this.status = DutyStatus.MISSED;
     }
 
+    /** 보정: 완료로 처리 (지난 주 보정용, 현재 상태 무관) */
+    public void correctAsDone(Long doneById, LocalDate doneDate) {
+        if (doneById == null || doneDate == null) {
+            throw new IllegalArgumentException("doneById와 doneDate는 null이어서는 안 됩니다.");
+        }
+        this.status = DutyStatus.DONE;
+        this.doneById = doneById;
+        this.doneDate = doneDate;
+    }
+
+    /** 보정: 미완료로 처리 (지난 주 보정용, 현재 상태 무관) */
+    public void correctAsMissed() {
+        this.status = DutyStatus.MISSED;
+        this.doneById = null;
+        this.doneDate = null;
+    }
+
     // ── 도메인 판단 ────────────────────────────────────────────
 
     /**

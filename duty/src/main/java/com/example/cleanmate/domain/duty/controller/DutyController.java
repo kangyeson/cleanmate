@@ -1,14 +1,18 @@
 package com.example.cleanmate.domain.duty.controller;
 
+import com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest;
 import com.example.cleanmate.domain.duty.dto.WeekDutyResponse;
 import com.example.cleanmate.domain.duty.service.DutyService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
 import com.example.cleanmate.global.interceptor.SessionInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -64,6 +68,18 @@ public class DutyController {
             HttpServletRequest request) {
         Long memberId = (Long) request.getAttribute(SessionInterceptor.MEMBER_ATTR);
         dutyService.cancelRecord(zoneId, memberId);
+        return ApiResponse.ok();
+    }
+
+    /** 지난 주 기록 보정 (관리자 전용) */
+    @PutMapping("/last-week")
+    public ApiResponse<Void> correctLastWeek(
+            HttpServletRequest request,
+            @Valid @RequestBody CorrectLastWeekRequest body) {
+        Long memberId = (Long) request.getAttribute(SessionInterceptor.MEMBER_ATTR);
+        String memberRole = (String) request.getAttribute(SessionInterceptor.ROLE_ATTR);
+        Long roomId = (Long) request.getAttribute(SessionInterceptor.ROOM_ATTR);
+        dutyService.correctLastWeek(memberId, memberRole, roomId, body);
         return ApiResponse.ok();
     }
 }

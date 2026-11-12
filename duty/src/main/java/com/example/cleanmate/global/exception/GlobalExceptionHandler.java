@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -32,6 +33,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         return ResponseEntity.badRequest().body(ApiResponse.error("잘못된 요청 값입니다: " + e.getName()));
+    }
+
+    /** @Valid 검증 실패 → 400 */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {
+        String msg = e.getBindingResult().getFieldErrors().stream()
+                .map(org.springframework.validation.FieldError::getDefaultMessage)
+                .findFirst()
+                .orElse("요청 값이 올바르지 않습니다.");
+        return ResponseEntity.badRequest().body(ApiResponse.error(msg));
     }
 
     /** Spring 표준 예외(@Valid 400, 404, 405 등) + catch-all */

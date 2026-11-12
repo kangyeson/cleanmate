@@ -16,6 +16,12 @@ public class SessionInterceptor implements HandlerInterceptor {
     /** 컨트롤러에서 memberId를 꺼낼 때 쓰는 request attribute 키 */
     public static final String MEMBER_ATTR = "memberId";
 
+    /** 컨트롤러에서 role을 꺼낼 때 쓰는 request attribute 키 */
+    public static final String ROLE_ATTR = "memberRole";
+
+    /** 컨트롤러에서 roomId를 꺼낼 때 쓰는 request attribute 키 */
+    public static final String ROOM_ATTR = "roomId";
+
     private static final String SESSION_COOKIE = "CMSESSION";
 
     private final SessionStore sessionStore;
@@ -39,12 +45,15 @@ public class SessionInterceptor implements HandlerInterceptor {
         }
 
         request.setAttribute(MEMBER_ATTR, session.memberId());
+        request.setAttribute(ROLE_ATTR, session.role());
+        request.setAttribute(ROOM_ATTR, session.roomId());
         return true;
     }
 
     private boolean isMutationRequest(HttpServletRequest request) {
         String method = request.getMethod();
-        return "POST".equals(method) || "DELETE".equals(method);
+        return "POST".equals(method) || "DELETE".equals(method)
+                || "PUT".equals(method) || "PATCH".equals(method);
     }
 
     private String extractCookie(HttpServletRequest request) {

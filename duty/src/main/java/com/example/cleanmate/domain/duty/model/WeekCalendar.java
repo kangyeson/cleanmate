@@ -36,6 +36,11 @@ public class WeekCalendar {
         return mondayOf(today());
     }
 
+    /** 지난 주 월요일 */
+    public LocalDate lastMonday() {
+        return currentMonday().minusWeeks(1);
+    }
+
     /**
      * startWeek 기준으로 targetWeek이 몇 번째 주인지 (0-based).
      *

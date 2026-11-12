@@ -27,7 +27,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/duty/*/done",
                         "/api/duty/*/substitute",
                         "/api/duty/*/record",
-                        "/api/duty/mine"
+                        "/api/duty/mine",
+                        "/api/duty/last-week"
                 );
     }
 }
