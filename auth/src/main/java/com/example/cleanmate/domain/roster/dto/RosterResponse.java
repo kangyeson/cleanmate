@@ -14,6 +14,6 @@ public record RosterResponse(
         List<MemberInfo> members,
         List<ZoneInfo> zones
 ) {
-    public record MemberInfo(Long id, String name) {}
-    public record ZoneInfo(Long id, String name) {}
+    public record MemberInfo(Long id, String name, boolean active) {}
+    public record ZoneInfo(Long id, String name, boolean active) {}
 }

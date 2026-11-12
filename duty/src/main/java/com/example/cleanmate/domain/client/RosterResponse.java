@@ -14,15 +14,21 @@ public record RosterResponse(
         List<MemberInfo> members,   // turn_order 오름차순
         List<ZoneInfo> zones        // zone_order 오름차순
 ) {
-    public record MemberInfo(Long id, String name) {}
-    public record ZoneInfo(Long id, String name) {}
+    /** 불변 복사: 외부에서 받은 가변 리스트를 방어적으로 복사한다. */
+    public RosterResponse {
+        members = List.copyOf(members);
+        zones = List.copyOf(zones);
+    }
+
+    public record MemberInfo(Long id, String name, boolean active) {}
+    public record ZoneInfo(Long id, String name, boolean active) {}
 
     public List<Long> memberIds() {
-        return members.stream().map(MemberInfo::id).toList();
+        return members.stream().filter(MemberInfo::active).map(MemberInfo::id).toList();
     }
 
     public List<Long> zoneIds() {
-        return zones.stream().map(ZoneInfo::id).toList();
+        return zones.stream().filter(ZoneInfo::active).map(ZoneInfo::id).toList();
     }
 
     public String memberName(Long id) {

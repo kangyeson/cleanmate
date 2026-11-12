@@ -4,6 +4,7 @@ import com.example.cleanmate.domain.room.exception.RoomAlreadyActiveException;
 import com.example.cleanmate.domain.room.model.Room;
 import com.example.cleanmate.domain.room.model.RoomStatus;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,13 @@ public class InMemoryRoomRepository implements RoomRepository {
         Room saved = new Room(id, room.getName(), room.getStartWeek(), room.getStatus());
         store.add(saved);
         return saved;
+    }
+
+    @Override
+    public void close(Long roomId, LocalDate endDate) {
+        store.replaceAll(r -> r.getId() != null && r.getId().equals(roomId)
+            ? new Room(r.getId(), r.getName(), r.getStartWeek(), RoomStatus.CLOSED)
+            : r);
     }
 
     public List<Room> findAll() {

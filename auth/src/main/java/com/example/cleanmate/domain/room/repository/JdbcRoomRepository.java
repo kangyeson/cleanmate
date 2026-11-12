@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,5 +61,13 @@ public class JdbcRoomRepository implements RoomRepository {
         }
         long newId = keyHolder.getKey().longValue();
         return new Room(newId, room.getName(), room.getStartWeek(), room.getStatus());
+    }
+
+    @Override
+    public void close(Long roomId, LocalDate endDate) {
+        jdbc.update(
+            "UPDATE rooms SET status='CLOSED', end_date=? WHERE id=?",
+            Date.valueOf(endDate), roomId
+        );
     }
 }

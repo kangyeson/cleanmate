@@ -60,11 +60,11 @@ public class JdbcMemberRepository implements MemberRepository {
     }
 
     @Override
-    public List<Member> findAllByRoomIdOrderByTurnOrder(Long roomId) {
+    public List<Member> findAllByRoomId(Long roomId) {
         return jdbc.query(
                 """
                 SELECT * FROM members
-                WHERE room_id = ? AND active = TRUE
+                WHERE room_id = ?
                 ORDER BY turn_order
                 """,
                 rowMapper, roomId
@@ -102,5 +102,33 @@ public class JdbcMemberRepository implements MemberRepository {
             "UPDATE members SET password_hash=?, must_change_pw=FALSE WHERE id=?",
             newHash, memberId
         );
+    }
+
+    @Override
+    public void resetPassword(Long memberId, String newHash) {
+        jdbc.update(
+            "UPDATE members SET password_hash=?, must_change_pw=TRUE WHERE id=?",
+            newHash, memberId
+        );
+    }
+
+    @Override
+    public void deactivate(Long memberId) {
+        jdbc.update("UPDATE members SET active=FALSE WHERE id=?", memberId);
+    }
+
+    @Override
+    public void updateName(Long memberId, String name) {
+        jdbc.update("UPDATE members SET name=? WHERE id=?", name, memberId);
+    }
+
+    @Override
+    public void updateTurnOrders(Long roomId, List<Long> memberIdsInNewOrder) {
+        for (int i = 0; i < memberIdsInNewOrder.size(); i++) {
+            jdbc.update(
+                "UPDATE members SET turn_order=? WHERE id=? AND room_id=?",
+                i + 1, memberIdsInNewOrder.get(i), roomId
+            );
+        }
     }
 }

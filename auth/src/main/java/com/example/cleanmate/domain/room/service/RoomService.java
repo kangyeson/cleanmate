@@ -1,5 +1,6 @@
 package com.example.cleanmate.domain.room.service;
 
+import com.example.cleanmate.domain.client.DutyClient;
 import com.example.cleanmate.domain.member.model.Member;
 import com.example.cleanmate.domain.member.model.MemberRole;
 import com.example.cleanmate.domain.member.repository.MemberRepository;
@@ -11,8 +12,10 @@ import com.example.cleanmate.domain.room.repository.RoomRepository;
 import com.example.cleanmate.domain.roster.dto.RosterResponse;
 import com.example.cleanmate.domain.zone.model.Zone;
 import com.example.cleanmate.domain.zone.repository.ZoneRepository;
+import com.example.cleanmate.global.exception.AdminOnlyException;
 import com.example.cleanmate.global.exception.CleanmateException;
 import com.example.cleanmate.global.security.PasswordHasher;
+import com.example.cleanmate.global.session.AdminGuard;
 import com.example.cleanmate.global.session.SessionData;
 import com.example.cleanmate.global.validation.InputValidator;
 import org.springframework.stereotype.Service;
@@ -34,17 +37,23 @@ public class RoomService {
     private final ZoneRepository zoneRepository;
     private final PasswordHasher passwordHasher;
     private final Clock clock;
+    private final DutyClient dutyClient;
+    private final AdminGuard adminGuard;
 
     public RoomService(RoomRepository roomRepository,
                        MemberRepository memberRepository,
                        ZoneRepository zoneRepository,
                        PasswordHasher passwordHasher,
-                       Clock clock) {
+                       Clock clock,
+                       DutyClient dutyClient,
+                       AdminGuard adminGuard) {
         this.roomRepository = roomRepository;
         this.memberRepository = memberRepository;
         this.zoneRepository = zoneRepository;
         this.passwordHasher = passwordHasher;
         this.clock = clock;
+        this.dutyClient = dutyClient;
+        this.adminGuard = adminGuard;
     }
 
     /**
@@ -57,13 +66,13 @@ public class RoomService {
                 .orElseThrow(() -> new CleanmateException("진행 중인 방이 없습니다.", 404));
 
         List<RosterResponse.MemberInfo> members = memberRepository
-                .findAllByRoomIdOrderByTurnOrder(room.getId()).stream()
-                .map(m -> new RosterResponse.MemberInfo(m.getId(), m.getName()))
+                .findAllByRoomId(room.getId()).stream()
+                .map(m -> new RosterResponse.MemberInfo(m.getId(), m.getName(), m.isActive()))
                 .toList();
 
         List<RosterResponse.ZoneInfo> zones = zoneRepository
-                .findAllByRoomIdOrderByZoneOrder(room.getId()).stream()
-                .map(z -> new RosterResponse.ZoneInfo(z.getId(), z.getName()))
+                .findAllByRoomId(room.getId()).stream()
+                .map(z -> new RosterResponse.ZoneInfo(z.getId(), z.getName(), z.isActive()))
                 .toList();
 
         return new RosterResponse(room.getId(), room.getName(), room.getStartWeek(), members, zones);
@@ -125,6 +134,16 @@ public class RoomService {
                 adminMember.getId(), room.getId(),
                 MemberRole.ADMIN.name(), adminMember.getName(), false
         );
+    }
+
+    /**
+     * 진행 중인 방을 종료한다.
+     * 관리자만 호출 가능. duty 서버에 finalize를 먼저 호출한 후 방 상태를 CLOSED로 변경.
+     */
+    public void closeRoom(String sessionId) {
+        SessionData session = adminGuard.requireAdmin(sessionId);
+        dutyClient.finalizeRoom(session.roomId());
+        roomRepository.close(session.roomId(), LocalDate.now(clock));
     }
 
     // ── 검증 ─────────────────────────────────────────────────────────────────
