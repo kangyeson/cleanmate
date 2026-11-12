@@ -321,18 +321,6 @@ function deleteZone(id) {
 
 // ── 지난 주 보정 ──────────────────────────────────────────────
 
-function getLastMonday() {
-    const today      = new Date();
-    const dayOfWeek  = today.getDay();
-    const toMonday   = (dayOfWeek + 6) % 7;
-    const lastMon    = new Date(today);
-    lastMon.setDate(today.getDate() - toMonday - 7);
-    const y = lastMon.getFullYear();
-    const m = String(lastMon.getMonth() + 1).padStart(2, '0');
-    const d = String(lastMon.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + d;
-}
-
 function getLastSunday(lastMonday) {
     const d = new Date(lastMonday);
     d.setDate(d.getDate() + 6);
@@ -340,7 +328,7 @@ function getLastSunday(lastMonday) {
 }
 
 function loadLastWeek() {
-    lastWeekDate = getLastMonday();
+    lastWeekDate = Page.lastMonday();
     $('#last-week-label').text('지난 주: ' + lastWeekDate + ' 주');
     Api.get('/api/history?weekStart=' + lastWeekDate).then(function (data) {
         lastWeekDuties = (data && data.weeks && data.weeks[0]) ? data.weeks[0].duties : [];

@@ -22,6 +22,7 @@ $(function () {
  */
 function load(keepMessage) {
     if (!keepMessage) Page.clearMessage();
+    $('#last-week-missed').prop('hidden', true);
 
     Api.me()
         .then(function (me) {
@@ -29,6 +30,9 @@ function load(keepMessage) {
             if (Page.guardMustChangePw(me)) return;
             return Api.get('/api/duty/week').then(function (week) {
                 renderWeek(week, me);
+                Api.get('/api/history?weekStart=' + Page.lastMonday())
+                    .then(function (history) { renderLastWeekMissed(history); })
+                    .catch(function () { /* 무시 */ });
                 if (me) {
                     return Api.get('/api/duty/mine').then(function (mine) {
                         renderMine(mine, me);
@@ -80,6 +84,17 @@ function actionButtons(item, me) {
             + ' data-name="' + Page.esc(item.zoneName) + '">기록 취소</button>';
     }
     return '';
+}
+
+function renderLastWeekMissed(history) {
+    const weeks = history.weeks || [];
+    if (weeks.length === 0) return;
+    const missed = weeks[0].duties.filter(function (d) { return d.status === 'MISSED'; });
+    if (missed.length === 0) return;
+    const text = '지난 주 미완료: ' + missed.map(function (d) {
+        return d.zoneName + '(' + d.assigneeName + ')';
+    }).join(', ');
+    $('#last-week-missed').text(text).prop('hidden', false);
 }
 
 /** 구역 카드 하나 */

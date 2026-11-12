@@ -84,6 +84,18 @@ const Page = (function () {
             .replace(/'/g, '&#39;');
     }
 
+    /** 지난 주 월요일 날짜 "YYYY-MM-DD" */
+    function lastMonday() {
+        const today    = new Date();
+        const toMonday = (today.getDay() + 6) % 7;
+        const d = new Date(today);
+        d.setDate(today.getDate() - toMonday - 7);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + dd;
+    }
+
     /** "2026-11-10" → "11/10" */
     function shortDate(isoDate) {
         if (!isoDate) return '';
@@ -159,6 +171,7 @@ const Page = (function () {
 
     return {
         esc: esc,
+        lastMonday: lastMonday,
         shortDate: shortDate,
         showMessage: showMessage,
         clearMessage: clearMessage,
