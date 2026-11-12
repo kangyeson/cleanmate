@@ -6,6 +6,6 @@ import com.example.cleanmate.global.exception.CleanmateException;
 public class RosterUnavailableException extends CleanmateException {
 
     public RosterUnavailableException() {
-        super("명단 조회 실패: auth 서버에 연결할 수 없습니다.", 503);
+        super("잠시 후 다시 시도하세요.", 503);
     }
 }

@@ -44,6 +44,11 @@ public class StatsService {
                 .filter(d -> d.getWeekStart().isBefore(currentMonday))
                 .toList();
 
+        int confirmedWeeks = (int) confirmed.stream()
+                .map(Duty::getWeekStart)
+                .distinct()
+                .count();
+
         // 사람별 집계 객체 초기화 (활성·비활성 모두)
         Map<Long, Counter> counters = new HashMap<>();
         for (RosterResponse.MemberInfo m : roster.members()) {
@@ -85,12 +90,12 @@ public class StatsService {
                     String rate = c.assigned == 0
                             ? null
                             : (c.selfDone * 100 / c.assigned) + "%";
-                    return new MemberStat(m.id(), m.name(),
+                    return new MemberStat(m.id(), m.name(), m.active(),
                             c.assigned, c.selfDone, c.missed, c.substitute, rate);
                 })
                 .toList();
 
-        return new StatsResponse(stats);
+        return new StatsResponse(confirmedWeeks, stats);
     }
 
     /** 멤버 1인의 집계 중간값 */

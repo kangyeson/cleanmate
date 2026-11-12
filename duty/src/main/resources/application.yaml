@@ -12,6 +12,8 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/cleanmate_duty?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USER:duty_user}
     password: ${DB_PASSWORD}
+    hikari:
+      connection-timeout: 3000
 
 server:
   port: 8082

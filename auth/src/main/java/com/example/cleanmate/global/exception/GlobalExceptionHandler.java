@@ -3,6 +3,8 @@ package com.example.cleanmate.global.exception;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -44,6 +46,13 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .orElse("입력값이 올바르지 않습니다.");
         return ResponseEntity.badRequest().body(ApiResponse.error(msg));
+    }
+
+    /** DB 연결 실패 → 503 (트랜잭션 메서드는 CannotCreateTransactionException으로 옴) */
+    @ExceptionHandler({DataAccessResourceFailureException.class, CannotCreateTransactionException.class})
+    public ResponseEntity<ApiResponse<Void>> handleDbDown(Exception e) {
+        log.warn("DB 연결 실패: {}", e.getMessage());
+        return ResponseEntity.status(503).body(ApiResponse.error("잠시 후 다시 시도하세요."));
     }
 
     /** Spring 표준 예외(404, 405 등) + catch-all */
