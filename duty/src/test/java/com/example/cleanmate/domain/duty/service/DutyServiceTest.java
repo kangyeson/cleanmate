@@ -222,7 +222,7 @@ class DutyServiceTest {
                 event -> {}
         );
 
-        // closePastWeeks 실행 — 11/2, 11/9 주 배정 생성 후 MISSED로 확정
+        // closePastWeeks 실행 — 11/2, 11/9 주 배정 생성 후 MISSED로 확정, 11/16(현재 주) PENDING 생성
         svc.closePastWeeks();
 
         // 11/2 주와 11/9 주의 모든 duty가 MISSED여야 한다
@@ -230,9 +230,12 @@ class DutyServiceTest {
         LocalDate week2 = LocalDate.of(2026, 11, 9);
         List<Duty> allDuties = repo.findByRoom(1L);
         assertFalse(allDuties.isEmpty());
-        // 11/16 주(현재 주) 배정은 없어야 한다
+        // 11/16 주(현재 주) 배정은 생성되지만 PENDING 상태여야 한다
         LocalDate currentWeek = LocalDate.of(2026, 11, 16);
-        assertTrue(allDuties.stream().noneMatch(d -> d.getWeekStart().equals(currentWeek)));
+        assertTrue(allDuties.stream().anyMatch(d -> d.getWeekStart().equals(currentWeek)));
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().equals(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.PENDING, d.getStatus()));
         // 지난 주 배정은 모두 MISSED
         allDuties.stream()
                 .filter(d -> d.getWeekStart().isBefore(currentWeek))
@@ -256,10 +259,14 @@ class DutyServiceTest {
 
         List<Duty> allDuties = repo.findByRoom(1L);
         LocalDate currentWeek = LocalDate.of(2026, 11, 16);
-        // 여전히 지난 주 배정만 있고 모두 MISSED
+        // 지난 주 배정은 모두 MISSED
         allDuties.stream()
                 .filter(d -> d.getWeekStart().isBefore(currentWeek))
                 .forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus()));
+        // 현재 주 배정은 PENDING
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().equals(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.PENDING, d.getStatus()));
     }
 
     @Test
@@ -278,10 +285,152 @@ class DutyServiceTest {
 
         svc.closePastWeeks();
 
-        // 실행 후: 11/2, 11/9 각각 4개 구역 = 8개 duty, 모두 MISSED
+        // 실행 후: 11/2, 11/9, 11/16 각각 4개 구역 = 12개 duty
         List<Duty> allDuties = repo.findByRoom(1L);
-        assertEquals(8, allDuties.size());
-        allDuties.forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus()));
+        LocalDate currentWeek = LocalDate.of(2026, 11, 16);
+        assertEquals(12, allDuties.size());
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().isBefore(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus()));
+        allDuties.stream()
+                .filter(d -> d.getWeekStart().equals(currentWeek))
+                .forEach(d -> assertEquals(DutyStatus.PENDING, d.getStatus()));
+    }
+
+    // ── correctLastWeek ───────────────────────────────────────
+
+    // 고정 날짜: 2026-11-10(화) → currentMonday = 2026-11-09, lastMonday = 2026-11-02
+    private static final Clock CLOCK_1110 =
+            Clock.fixed(LocalDate.of(2026, 11, 10).atStartOfDay(SEOUL).toInstant(), SEOUL);
+
+    private DutyService buildServiceWithClock(Clock clock) {
+        return new DutyService(
+                new InMemoryDutyRepository(),
+                new StubRosterClient(),
+                new WeekCalendar(clock),
+                new RotationPolicy(),
+                event -> {}
+        );
+    }
+
+    @Test
+    void correctLastWeek_정상_DONE_보정() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(repo, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1110), new RotationPolicy(), event -> {});
+
+        // 지난 주(11/2) 배정 생성
+        svc.getWeekDuties(); // 이번 주(11/9) 배정도 생성되지만 무관
+        // 11/2 주를 직접 채워야 함
+        InMemoryDutyRepository repo2 = new InMemoryDutyRepository();
+        DutyService svcLastWeek = new DutyService(repo2, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116), new RotationPolicy(), event -> {});
+        svcLastWeek.closePastWeeks(); // 11/2, 11/9 배정 채우고 MISSED로
+
+        // repo2의 11/2 주 샤워실(1L) 기록을 DONE으로 보정
+        com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest req =
+                new com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest(
+                        1L, "DONE",
+                        LocalDate.of(2026, 11, 2),
+                        1L,
+                        LocalDate.of(2026, 11, 3)
+                );
+
+        DutyService corrSvc = new DutyService(repo2, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1110), new RotationPolicy(), event -> {});
+
+        corrSvc.correctLastWeek(4L, "ADMIN", 1L, req);
+
+        List<Duty> duties = repo2.findByRoom(1L);
+        Duty corrected = duties.stream()
+                .filter(d -> d.getWeekStart().equals(LocalDate.of(2026, 11, 2))
+                        && d.getZoneId().equals(1L))
+                .findFirst().orElseThrow();
+        assertEquals(DutyStatus.DONE, corrected.getStatus());
+        assertEquals(1L, corrected.getDoneById());
+    }
+
+    @Test
+    void correctLastWeek_비관리자_403() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(repo, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116), new RotationPolicy(), event -> {});
+        svc.closePastWeeks();
+
+        com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest req =
+                new com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest(
+                        1L, "MISSED", LocalDate.of(2026, 11, 9), null, null
+                );
+
+        assertThrows(com.example.cleanmate.global.exception.AdminOnlyException.class,
+                () -> svc.correctLastWeek(1L, "MEMBER", 1L, req));
+    }
+
+    @Test
+    void correctLastWeek_다른_주_요청_400() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(repo, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116), new RotationPolicy(), event -> {});
+        svc.closePastWeeks();
+
+        // 11/9 (이번 주)를 보정 요청 — lastMonday는 11/9이므로 맞음
+        // 하지만 CLOCK_1116에서 lastMonday = 11/9, 그러면 11/9는 맞는 것
+        // 11/2를 lastMonday로 갖는 clock으로 11/9 주를 보정 시도
+        // CLOCK_1116: currentMonday=11/16, lastMonday=11/9
+        com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest req =
+                new com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest(
+                        1L, "MISSED",
+                        LocalDate.of(2026, 11, 2),  // lastMonday는 11/9인데 11/2 요청
+                        null, null
+                );
+
+        com.example.cleanmate.global.exception.CleanmateException ex =
+                assertThrows(com.example.cleanmate.global.exception.CleanmateException.class,
+                        () -> svc.correctLastWeek(4L, "ADMIN", 1L, req));
+        assertEquals(400, ex.getStatus());
+    }
+
+    @Test
+    void correctLastWeek_날짜_범위_밖_400() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        DutyService svc = new DutyService(repo, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1116), new RotationPolicy(), event -> {});
+        svc.closePastWeeks();
+
+        // 완료일이 지난 주(11/9~11/15) 범위를 벗어남 (11/8 = 전 주 일요일)
+        com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest req =
+                new com.example.cleanmate.domain.duty.dto.CorrectLastWeekRequest(
+                        1L, "DONE",
+                        LocalDate.of(2026, 11, 9),
+                        1L,
+                        LocalDate.of(2026, 11, 8)  // 범위 밖
+                );
+
+        com.example.cleanmate.global.exception.CleanmateException ex =
+                assertThrows(com.example.cleanmate.global.exception.CleanmateException.class,
+                        () -> svc.correctLastWeek(4L, "ADMIN", 1L, req));
+        assertEquals(400, ex.getStatus());
+    }
+
+    // ── finalizeRoom ──────────────────────────────────────────
+
+    @Test
+    void finalizeRoom_이번주_PENDING도_MISSED로() {
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        // CLOCK_1110: currentMonday = 2026-11-09
+        DutyService svc = new DutyService(repo, new StubRosterClient(),
+                new WeekCalendar(CLOCK_1110), new RotationPolicy(), event -> {});
+
+        // 이번 주 배정 생성
+        svc.getWeekDuties();
+
+        svc.finalizeRoom(1L);
+
+        List<Duty> duties = repo.findByRoom(1L);
+        assertFalse(duties.isEmpty());
+        // 모든 duty가 MISSED여야 함
+        duties.forEach(d -> assertEquals(DutyStatus.MISSED, d.getStatus(),
+                "주 " + d.getWeekStart() + " zone " + d.getZoneId() + "이 MISSED여야 합니다."));
     }
 
     // ── 헬퍼 ─────────────────────────────────────────────────

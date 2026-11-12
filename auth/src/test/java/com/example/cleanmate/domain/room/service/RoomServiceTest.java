@@ -1,5 +1,6 @@
 package com.example.cleanmate.domain.room.service;
 
+import com.example.cleanmate.domain.client.DutyClient;
 import com.example.cleanmate.domain.member.model.Member;
 import com.example.cleanmate.domain.member.model.MemberRole;
 import com.example.cleanmate.domain.member.repository.InMemoryMemberRepository;
@@ -12,7 +13,9 @@ import com.example.cleanmate.domain.zone.model.Zone;
 import com.example.cleanmate.domain.zone.repository.InMemoryZoneRepository;
 import com.example.cleanmate.global.exception.CleanmateException;
 import com.example.cleanmate.global.security.PasswordHasher;
+import com.example.cleanmate.global.session.AdminGuard;
 import com.example.cleanmate.global.session.SessionData;
+import com.example.cleanmate.global.session.SessionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +23,8 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,12 +43,27 @@ class RoomServiceTest {
         memberRepository = new InMemoryMemberRepository();
         zoneRepository = new InMemoryZoneRepository();
 
+        // No-op stubs for new dependencies
+        DutyClient dutyClient = new DutyClient() {
+            public void finalizeRoom(Long roomId) {}
+            public void ensureCurrentWeek(Long roomId) {}
+        };
+        SessionStore sessionStore = new SessionStore() {
+            public Optional<SessionData> find(String s) { return Optional.empty(); }
+            public String create(SessionData d) { return "stub"; }
+            public void delete(String s) {}
+            public void update(String s, SessionData d) {}
+        };
+        AdminGuard adminGuard = new AdminGuard(sessionStore, roomRepository);
+
         service = new RoomService(
                 roomRepository,
                 memberRepository,
                 zoneRepository,
                 passwordHasher,
-                Clock.systemDefaultZone()
+                Clock.systemDefaultZone(),
+                dutyClient,
+                adminGuard
         );
     }
 
@@ -234,5 +254,98 @@ class RoomServiceTest {
         CleanmateException ex = assertThrows(CleanmateException.class,
                 () -> service.createRoom(request));
         assertEquals(400, ex.getStatus());
+    }
+
+    // ── 9. closeRoom ─────────────────────────────────────────
+
+    @Test
+    void closeRoom_비관리자_403() {
+        // Create room and seed a MEMBER session
+        SessionData adminData = service.createRoom(defaultRequest());
+        Long roomId = adminData.roomId();
+
+        // Seed a member session in a different SessionStore
+        // Use a new service with a member session
+        Map<String, SessionData> sessions2 = new java.util.HashMap<>();
+        sessions2.put("member-s", new SessionData(99L, roomId, "MEMBER", "민정", false));
+
+        SessionStore memberStore = new SessionStore() {
+            public java.util.Optional<SessionData> find(String s) {
+                return java.util.Optional.ofNullable(sessions2.get(s));
+            }
+            public String create(SessionData d) { return "x"; }
+            public void delete(String s) {}
+            public void update(String s, SessionData d) {}
+        };
+
+        DutyClient noopClient = new DutyClient() {
+            public void finalizeRoom(Long roomId) {}
+            public void ensureCurrentWeek(Long roomId) {}
+        };
+        AdminGuard memberGuard = new AdminGuard(memberStore, roomRepository);
+        RoomService svc2 = new RoomService(
+                roomRepository, memberRepository, zoneRepository,
+                passwordHasher, Clock.systemDefaultZone(),
+                noopClient, memberGuard
+        );
+
+        assertThrows(com.example.cleanmate.global.exception.AdminOnlyException.class,
+                () -> svc2.closeRoom("member-s"));
+    }
+
+    @Test
+    void closeRoom_duty_실패_시_방_상태_ACTIVE_유지() {
+        Map<String, SessionData> sessions2 = new java.util.HashMap<>();
+
+        SessionStore setupStore = new SessionStore() {
+            public java.util.Optional<SessionData> find(String s) {
+                return java.util.Optional.ofNullable(sessions2.get(s));
+            }
+            public String create(SessionData d) { return "x"; }
+            public void delete(String s) {}
+            public void update(String s, SessionData d) {}
+        };
+        DutyClient noopDuty = new DutyClient() {
+            public void finalizeRoom(Long roomId) {}
+            public void ensureCurrentWeek(Long roomId) {}
+        };
+        AdminGuard setupGuard = new AdminGuard(setupStore, roomRepository);
+        RoomService setupSvc = new RoomService(
+                roomRepository, memberRepository, zoneRepository,
+                passwordHasher, Clock.systemDefaultZone(),
+                noopDuty, setupGuard
+        );
+
+        SessionData adminData = setupSvc.createRoom(defaultRequest());
+        sessions2.put("admin-s", new SessionData(adminData.memberId(), adminData.roomId(), "ADMIN", adminData.name(), false));
+
+        // duty client that throws on finalizeRoom
+        DutyClient failClient = new DutyClient() {
+            public void finalizeRoom(Long roomId) {
+                throw new com.example.cleanmate.global.exception.CleanmateException("duty 오류", 503);
+            }
+            public void ensureCurrentWeek(Long roomId) {}
+        };
+
+        SessionStore closeStore = new SessionStore() {
+            public java.util.Optional<SessionData> find(String s) {
+                return java.util.Optional.ofNullable(sessions2.get(s));
+            }
+            public String create(SessionData d) { return "x"; }
+            public void delete(String s) {}
+            public void update(String s, SessionData d) {}
+        };
+        AdminGuard closeGuard = new AdminGuard(closeStore, roomRepository);
+        RoomService closeSvc = new RoomService(
+                roomRepository, memberRepository, zoneRepository,
+                passwordHasher, Clock.systemDefaultZone(),
+                failClient, closeGuard
+        );
+
+        assertThrows(com.example.cleanmate.global.exception.CleanmateException.class,
+                () -> closeSvc.closeRoom("admin-s"));
+
+        // Room should still be ACTIVE
+        assertTrue(roomRepository.findActive().isPresent());
     }
 }

@@ -91,4 +91,12 @@ class SessionInterceptorTest {
         boolean result = interceptor.preHandle(request, new MockHttpServletResponse(), null);
         assertTrue(result);
     }
+
+    @Test
+    void mustChangePw_true_이고_PUT이면_403() {
+        MockHttpServletRequest request = new MockHttpServletRequest("PUT", "/api/duty/last-week");
+        request.setCookies(new Cookie("CMSESSION", MCP_ID));
+        assertThrows(PasswordChangeRequiredException.class,
+                () -> interceptor.preHandle(request, new MockHttpServletResponse(), null));
+    }
 }

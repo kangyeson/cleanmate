@@ -48,16 +48,17 @@ public class InMemoryMemberRepository implements MemberRepository {
     }
 
     @Override
-    public List<Member> findAllByRoomIdOrderByTurnOrder(Long roomId) {
+    public List<Member> findAllByRoomId(Long roomId) {
         return store.values().stream()
-                .filter(m -> m.getRoomId().equals(roomId) && m.isActive())
+                .filter(m -> m.getRoomId().equals(roomId))
                 .sorted(Comparator.comparingInt(Member::getTurnOrder))
                 .toList();
     }
 
     @Override
     public Member save(Member member) {
-        long id = nextId++;
+        long id = member.getId() != null ? member.getId() : nextId++;
+        if (id >= nextId) nextId = id + 1;
         Member saved = new Member(id, member.getRoomId(), member.getName(), member.getRole(),
                 member.getPasswordHash(), member.isMustChangePw(), member.getTurnOrder(), member.isActive());
         store.put(id, saved);
@@ -73,6 +74,55 @@ public class InMemoryMemberRepository implements MemberRepository {
             newHash, false, existing.getTurnOrder(), existing.isActive()
         );
         store.put(memberId, updated);
+    }
+
+    @Override
+    public void resetPassword(Long memberId, String newHash) {
+        Member existing = store.get(memberId);
+        if (existing == null) return;
+        Member updated = new Member(
+            existing.getId(), existing.getRoomId(), existing.getName(), existing.getRole(),
+            newHash, true, existing.getTurnOrder(), existing.isActive()
+        );
+        store.put(memberId, updated);
+    }
+
+    @Override
+    public void deactivate(Long memberId) {
+        Member existing = store.get(memberId);
+        if (existing == null) return;
+        Member updated = new Member(
+            existing.getId(), existing.getRoomId(), existing.getName(), existing.getRole(),
+            existing.getPasswordHash(), existing.isMustChangePw(), existing.getTurnOrder(), false
+        );
+        store.put(memberId, updated);
+    }
+
+    @Override
+    public void updateName(Long memberId, String name) {
+        Member existing = store.get(memberId);
+        if (existing == null) return;
+        Member updated = new Member(
+            existing.getId(), existing.getRoomId(), name, existing.getRole(),
+            existing.getPasswordHash(), existing.isMustChangePw(), existing.getTurnOrder(), existing.isActive()
+        );
+        store.put(memberId, updated);
+    }
+
+    @Override
+    public void updateTurnOrders(Long roomId, List<Long> memberIdsInNewOrder) {
+        for (int i = 0; i < memberIdsInNewOrder.size(); i++) {
+            Long memberId = memberIdsInNewOrder.get(i);
+            Member existing = store.get(memberId);
+            if (existing != null && existing.getRoomId().equals(roomId)) {
+                int newOrder = i + 1;
+                Member updated = new Member(
+                    existing.getId(), existing.getRoomId(), existing.getName(), existing.getRole(),
+                    existing.getPasswordHash(), existing.isMustChangePw(), newOrder, existing.isActive()
+                );
+                store.put(memberId, updated);
+            }
+        }
     }
 
     /** 테스트용: 저장된 전체 멤버 목록 반환. */

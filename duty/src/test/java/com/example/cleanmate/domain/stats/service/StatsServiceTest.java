@@ -148,4 +148,43 @@ class StatsServiceTest {
         assertEquals(YESON,    members.get(3).memberId());
         assertEquals("예손",   members.get(3).name());
     }
+
+    @Test
+    void getStats_비활성_멤버의_기록이_결과에_포함() {
+        // 비활성 멤버가 있는 roster 사용
+        RosterClient rosterWithInactive = () -> new com.example.cleanmate.domain.client.RosterResponse(
+                ROOM_ID,
+                "525호",
+                LocalDate.of(2026, 11, 2),
+                List.of(
+                        new com.example.cleanmate.domain.client.RosterResponse.MemberInfo(MINJEONG, "민정", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.MemberInfo(JIHYUN,   "지현", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.MemberInfo(SEOHYUN,  "서현", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.MemberInfo(YESON,    "예손", false)  // 비활성
+                ),
+                List.of(
+                        new com.example.cleanmate.domain.client.RosterResponse.ZoneInfo(ZONE_1, "샤워실", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.ZoneInfo(ZONE_2, "화장실", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.ZoneInfo(ZONE_3, "세면대", true),
+                        new com.example.cleanmate.domain.client.RosterResponse.ZoneInfo(ZONE_4, "바닥",   true)
+                )
+        );
+
+        InMemoryDutyRepository repo = new InMemoryDutyRepository();
+        // 비활성 멤버(예손)가 과거에 청소한 기록
+        Duty yesonDone = repo.save(Duty.newAssignment(ROOM_ID, LAST_WEEK, ZONE_4, YESON));
+        yesonDone.markDone(YESON, LAST_WEEK.plusDays(1));
+        repo.save(yesonDone);
+
+        StatsService svc = new StatsService(repo, rosterWithInactive, new WeekCalendar(FIXED_CLOCK));
+        StatsResponse response = svc.getStats();
+
+        // 비활성 멤버도 기록이 있으면 결과에 포함
+        MemberStat yeson = response.members().stream()
+                .filter(m -> m.memberId().equals(YESON))
+                .findFirst().orElseThrow(() -> new AssertionError("예손이 결과에 없음"));
+
+        assertEquals(1, yeson.assigned());
+        assertEquals(1, yeson.selfDone());
+    }
 }
