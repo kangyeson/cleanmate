@@ -127,3 +127,30 @@ td.name { text-align: left; font-weight: bold; }
 
 /* ── 비밀번호 변경 필요 강조 ── */
 .pw-required { color: #b54708 !important; font-weight: bold; }
+
+/* ── 관리 화면 ── */
+.section-gap { margin-top: 24px; }
+.admin-table { width: 100%; border-collapse: collapse; background: #fff; }
+.admin-table th, .admin-table td { padding: 7px 6px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+.admin-table th { background: #f0f2f5; font-weight: normal; color: #555; }
+.admin-table td.order-btns { width: 56px; text-align: center; }
+.admin-table td.actions-col { white-space: nowrap; }
+.order-btn { font-size: 12px; padding: 2px 6px; background: #e9ebef; color: #333; border: 0; border-radius: 4px; cursor: pointer; margin: 0 1px; }
+.order-btn:disabled { opacity: .4; cursor: default; }
+.inactive-row { opacity: 0.5; }
+.add-form { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.add-form input { flex: 1; min-width: 100px; }
+.btn-sm { font-size: 12px; padding: 3px 7px; border: 0; border-radius: 4px; cursor: pointer; background: #e9ebef; color: #333; }
+.btn-sm.danger { background: #b42318; color: #fff; }
+.btn-sm.primary { background: #2f5bd3; color: #fff; }
+.danger-btn { background: #b42318; color: #fff; }
+.danger-btn:hover { background: #931d14; }
+.lw-info { font-size: 13px; color: #555; margin: 2px 0 6px; }
+.lw-zone { margin-bottom: 10px; }
+.inline-form { display: none; margin-top: 8px; gap: 6px; align-items: center; flex-wrap: wrap; }
+.inline-form.open { display: flex; }
+.inline-form input[type=password], .inline-form input[type=date], .inline-form select {
+    font: inherit; padding: 5px 8px; border: 1px solid #ccd0d5; border-radius: 6px;
+}
+.inline-form select { flex: 1; min-width: 100px; }
+.inline-form input[type=date] { width: 140px; }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>관리 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <div id="message"></div>
+
+    <h1>관리</h1>
+
+    <!-- 룸메이트 관리 -->
+    <section class="card">
+        <h2>룸메이트 관리</h2>
+        <table class="admin-table" id="member-table">
+            <thead>
+            <tr>
+                <th style="width:36px">순서</th>
+                <th>이름</th>
+                <th>역할</th>
+                <th>상태</th>
+                <th>작업</th>
+            </tr>
+            </thead>
+            <tbody id="member-tbody"></tbody>
+        </table>
+
+        <div class="add-form">
+            <input type="text" id="new-member-name" placeholder="이름" maxlength="30">
+            <input type="password" id="new-member-pw" placeholder="비밀번호">
+            <button type="button" id="add-member-btn">추가</button>
+        </div>
+    </section>
+
+    <!-- 구역 관리 -->
+    <section class="card section-gap">
+        <h2>구역 관리</h2>
+        <table class="admin-table" id="zone-table">
+            <thead>
+            <tr>
+                <th style="width:36px">순서</th>
+                <th>이름</th>
+                <th>상태</th>
+                <th>작업</th>
+            </tr>
+            </thead>
+            <tbody id="zone-tbody"></tbody>
+        </table>
+
+        <div class="add-form">
+            <input type="text" id="new-zone-name" placeholder="구역 이름" maxlength="30">
+            <button type="button" id="add-zone-btn">추가</button>
+        </div>
+    </section>
+
+    <!-- 지난 주 보정 -->
+    <section class="card section-gap">
+        <h2>지난 주 보정</h2>
+        <p class="hint" id="last-week-label"></p>
+        <div id="last-week-list"></div>
+    </section>
+
+    <!-- 방 종료 -->
+    <section class="card section-gap">
+        <h2>방 종료</h2>
+        <p class="hint">방을 종료하면 모든 미완료 당번이 MISSED 처리되고 더 이상 기록할 수 없습니다.</p>
+        <button type="button" class="danger-btn" id="close-room-btn">방 종료</button>
+    </section>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

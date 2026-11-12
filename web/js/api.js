@@ -122,6 +122,10 @@ const Page = (function () {
             right = '<a href="login.html">로그인</a>';
         }
 
+        const adminLink = (me && me.role === 'ADMIN')
+            ? '<a href="admin.html">관리</a>'
+            : '';
+
         $('#header').html(
             '<div class="header-inner">'
             + '  <a class="brand" href="index.html">청소 당번 도우미</a>'
@@ -129,6 +133,7 @@ const Page = (function () {
             + '    <a href="index.html">이번 주</a>'
             + '    <a href="stats.html">누적 기록</a>'
             + '    <a href="history.html">주별 기록</a>'
+            + (adminLink ? '    ' + adminLink : '')
             + '  </nav>'
             + '  <div class="user">' + right + '</div>'
             + '</div>'
