@@ -1,5 +1,6 @@
 package com.example.cleanmate.domain.duty.model;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,6 @@ public class RotationPolicy {
             Long assignee = memberIds.get((i + weekIndex) % n);
             result.put(zoneIds.get(i), assignee);
         }
-        return result;
+        return Collections.unmodifiableMap(result);
     }
 }
