@@ -103,6 +103,12 @@ const Page = (function () {
         return Number(parts[1]) + '/' + Number(parts[2]);
     }
 
+    const NO_ACTIVE_ROOM_MESSAGE = '진행 중인 방이 없습니다.';
+
+    function isNoActiveRoom(err) {
+        return !!err && err.status === 404 && err.message === NO_ACTIVE_ROOM_MESSAGE;
+    }
+
     /** 메시지 영역(#message)에 안내 표시. type: 'error' | 'info' */
     function showMessage(text, type) {
         $('#message')
@@ -172,6 +178,7 @@ const Page = (function () {
     return {
         esc: esc,
         lastMonday: lastMonday,
+        isNoActiveRoom: isNoActiveRoom,
         shortDate: shortDate,
         showMessage: showMessage,
         clearMessage: clearMessage,

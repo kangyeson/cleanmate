@@ -41,8 +41,8 @@ function load(keepMessage) {
             });
         })
         .catch(function (err) {
-            if (err.status === 404) {
-                // 진행 중인 방이 없음 → 방 만들기 안내
+            if (Page.isNoActiveRoom(err)) {
+                // 서버가 "진행 중인 방이 없음"이라고 답한 경우에만 방 만들기 안내 (다른 404는 아래에서 오류로 표시)
                 $('#week-section, #mine-section').prop('hidden', true);
                 $('#no-room').prop('hidden', false);
                 return;
