@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>알림 - 청소 당번 도우미</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header id="header"></header>
+
+<main>
+    <h1>알림</h1>
+    <div id="message"></div>
+
+    <!-- 알림 설정: 알림 서버(Node.js)가 저장 -->
+    <section class="card">
+        <label class="toggle-row" for="remind-on">
+            <input type="checkbox" id="remind-on" disabled>
+            수·토 저녁 8시에 내 미완료 구역 알림 받기
+        </label>
+    </section>
+
+    <!-- 알림함: 완료 소식(방 전체)과 나에게 온 리마인더 -->
+    <section class="card">
+        <ul id="notify-list" class="notify-list"></ul>
+        <p id="notify-empty" class="hint" hidden>아직 알림이 없습니다.</p>
+    </section>
+</main>
+
+<script src="js/jquery-3.7.1.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/notify.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "cleanmate-notify",
+  "version": "1.0.0",
+  "description": "청소 당번 도우미 알림 서버 (Node.js Express): 완료 이벤트 소비, 미완료 리마인더, 화면 알림함",
+  "main": "src/app.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "4.22.3",
+    "mysql2": "3.24.6",
+    "node-cron": "4.6.0",
+    "redis": "4.7.1"
+  }
+}

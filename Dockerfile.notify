@@ -1,0 +1,31 @@
+# =====================================================================
+# cleanmate-notify : Node.js(Express) 알림 서버
+#   - Redis Streams(duty-events) 소비 → 화면 알림함 저장
+#   - 수·토 20시 미완료 리마인더
+#   - Java 인증 서버가 만든 Redis JSON 세션을 그대로 읽음 (이기종 세션 공유)
+#
+# 접속 정보는 이미지에 넣지 않고 실행할 때 환경 변수로 넣는다.
+#   DB_HOST, DB_PASSWORD, REDIS_HOST, AUTH_URL, DUTY_URL (REMIND_CRON은 시험용)
+# =====================================================================
+FROM node:20-slim
+
+ENV TZ=Asia/Seoul
+ENV NODE_ENV=production
+
+# 컨테이너 안에서 /health를 확인하기 위한 curl
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 의존성 먼저 설치 (package*.json이 바뀌지 않으면 이 층은 다시 빌드하지 않음)
+COPY notify/package.json notify/package-lock.json ./
+RUN npm ci --omit=dev
+
+# 소스 복사
+COPY notify/src ./src
+
+EXPOSE 3000
+
+CMD ["node", "src/app.js"]
