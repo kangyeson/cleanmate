@@ -6,6 +6,7 @@
 -- 스키마 분리: 데이터마다 주인 서버 하나
 --   cleanmate_auth : 인증 서버만 사용 (rooms, members, zones)
 --   cleanmate_duty : 당번 서버만 사용 (duties)
+--   cleanmate_notify : 알림 서버만 사용 (notify_settings, notifications, notify_reads)
 -- 스키마를 넘는 외래 키는 걸지 않는다. duties의 room/zone/member id는
 -- 인증 서버의 id 값을 그대로 저장할 뿐이고, 이름은 /internal/roster로 받는다.
 -- =====================================================================
@@ -79,4 +80,39 @@ CREATE TABLE duties (
   CONSTRAINT ck_duties_status    CHECK (status IN ('PENDING', 'DONE', 'MISSED')),
   -- DONE이면 청소한 사람·날짜가 반드시 있고, DONE이 아니면 반드시 비어 있음
   CONSTRAINT ck_duties_done      CHECK ((status = 'DONE') = (done_by_id IS NOT NULL AND done_date IS NOT NULL))
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- cleanmate_notify (알림 서버, Node.js)
+-- ---------------------------------------------------------------------
+CREATE DATABASE IF NOT EXISTS cleanmate_notify CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE cleanmate_notify;
+
+-- 회원별 알림 설정. 행이 없으면 리마인더 받기(기본값 TRUE)로 본다.
+CREATE TABLE notify_settings (
+  member_id  BIGINT      PRIMARY KEY,                 -- 인증 서버 members.id (FK 없음)
+  remind_on  BOOLEAN     NOT NULL DEFAULT TRUE,       -- 수·토 20시 미완료 리마인더 받기
+  updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB;
+
+-- 알림함. member_id가 NULL이면 방 전체(완료 소식), 값이 있으면 그 사람에게만(리마인더).
+CREATE TABLE notifications (
+  id         BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  room_id    BIGINT       NOT NULL,                   -- 인증 서버 rooms.id (FK 없음)
+  member_id  BIGINT       NULL,
+  type       VARCHAR(20)  NOT NULL,                   -- DONE / REMINDER
+  message    VARCHAR(200) NOT NULL,
+  -- 같은 알림이 두 번 들어가지 않게 하는 키 (완료 소식: 스트림 이벤트 ID, 리마인더: 날짜·회원·구역)
+  -- Redis Streams는 "적어도 한 번" 전달이라 같은 이벤트가 다시 와도 여기서 한 번만 저장된다.
+  event_key  VARCHAR(80)  NOT NULL,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_notifications_event UNIQUE (event_key),
+  CONSTRAINT ck_notifications_type  CHECK (type IN ('DONE', 'REMINDER')),
+  INDEX ix_notifications_room (room_id, id)
+) ENGINE = InnoDB;
+
+-- 회원별로 어디까지 읽었는지 (안 읽은 알림 수 = 이 id보다 큰 알림 수)
+CREATE TABLE notify_reads (
+  member_id    BIGINT PRIMARY KEY,
+  last_read_id BIGINT NOT NULL DEFAULT 0
 ) ENGINE = InnoDB;
