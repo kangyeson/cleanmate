@@ -41,3 +41,6 @@ out/
 
 ### Claude Code ###
 .claude/
+
+### Docker 실행용 환경 변수 (비밀번호) ###
+env/*.env

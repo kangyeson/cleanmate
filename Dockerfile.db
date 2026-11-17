@@ -1,0 +1,21 @@
+# =====================================================================
+# cleanmate-db : MySQL 8.4 + 초기화 스크립트
+#
+# 공식 mysql 이미지는 데이터 폴더(/var/lib/mysql)가 비어 있을 때
+# /docker-entrypoint-initdb.d 안의 .sql / .sh 파일을 이름 순서대로 한 번 실행한다.
+#   01-schema.sql   스키마 2개(cleanmate_auth, cleanmate_duty)와 테이블
+#   02-users.sh     서버별 DB 계정(auth_user, duty_user)과 권한
+#   03-seed-dev.sql 시연용 예시 데이터(가짜 이름)
+# 스크립트를 이미지에 넣어 두면 VM에서는 pull만으로 DB가 준비된다
+# (db/init 폴더를 따로 복사하거나 바인드 마운트할 필요가 없음).
+#
+# 비밀번호는 이미지에 넣지 않는다. 실행할 때 --env-file로 넣는다.
+#   MYSQL_ROOT_PASSWORD, AUTH_DB_PASSWORD, DUTY_DB_PASSWORD
+# =====================================================================
+FROM mysql:8.4
+
+# 컨테이너 시간대를 한국으로 (로그·NOW() 확인용)
+ENV TZ=Asia/Seoul
+
+# 초기화 스크립트 복사 (빌드 컨텍스트 = 저장소 루트)
+COPY db/init/ /docker-entrypoint-initdb.d/

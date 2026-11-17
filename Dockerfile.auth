@@ -1,0 +1,28 @@
+# =====================================================================
+# cleanmate-auth : Spring Boot 인증 서버: 로그인·세션 생성, 방·룸메이트·구역 관리, 내부 명단 API
+#
+# 빌드 방법: 먼저 호스트에서 jar를 만든 뒤(./gradlew :auth:bootJar)
+# 그 jar를 이미지에 COPY한다. (실습처럼 개발한 결과물을 COPY로 이미지에 담는 방식)
+#
+# 접속 정보는 이미지에 넣지 않고 실행할 때 환경 변수로 넣는다.
+#   DB_HOST, DB_USER, DB_PASSWORD, REDIS_HOST, DUTY_URL
+# =====================================================================
+FROM eclipse-temurin:21-jre
+
+# 한국 시간대 (정기 작업은 코드에서도 Asia/Seoul로 지정되어 있음)
+ENV TZ=Asia/Seoul
+
+# 컨테이너 안에서 /health를 확인하기 위한 curl 설치 (docker exec ... curl localhost:8081/health)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# bootJar로 만든 실행 가능한 jar (이름 끝이 -plain인 jar는 실행용이 아니므로 쓰지 않음)
+COPY auth/build/libs/auth-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8081
+
+# 컨테이너가 시작되면 Spring Boot 서버 실행
+CMD ["java", "-jar", "app.jar"]

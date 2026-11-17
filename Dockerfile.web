@@ -1,0 +1,20 @@
+# =====================================================================
+# cleanmate-web : 화면(HTML·CSS·jQuery) 정적 파일을 제공하는 Apache
+#
+# httpd 공식 이미지의 기본 문서 폴더는 /usr/local/apache2/htdocs 이다.
+# 과제 안내(Apache의 /var/www/html에 HTML·JS)에 맞춰 문서 폴더를 /var/www/html로 바꾼다.
+# 화면 파일은 COPY로 이미지에 넣는다(바인드 마운트 없이 실행 → 도커 허브 이미지만으로 동작).
+# API는 화면과 같은 주소(/api/...)로 호출하므로 Apache는 정적 파일만 제공한다.
+# =====================================================================
+FROM httpd:2.4
+
+ENV TZ=Asia/Seoul
+
+# httpd.conf의 DocumentRoot와 <Directory> 경로를 /var/www/html로 변경하고 폴더를 만든다
+RUN sed -i 's#/usr/local/apache2/htdocs#/var/www/html#g' /usr/local/apache2/conf/httpd.conf \
+ && mkdir -p /var/www/html
+
+# 화면 파일 복사 (web/ 폴더 전체: html, css, js, jquery)
+COPY web/ /var/www/html/
+
+EXPOSE 80
