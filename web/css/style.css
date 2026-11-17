@@ -48,6 +48,14 @@ nav a { color: #555; text-decoration: none; }
     background: #e8eefc;
     color: #2f5bd3;
 }
+/* 상단 "알림" 옆 안 읽은 수 */
+.count-badge {
+    font-size: 11px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: #b42318;
+    color: #fff;
+}
 
 /* ── 메시지 ── */
 #message {
@@ -151,3 +159,12 @@ td.name { text-align: left; font-weight: bold; }
 }
 .inline-form select { flex: 1; min-width: 100px; }
 .inline-form input[type=date] { width: 140px; }
+
+/* ── 알림함 ── */
+.notify-list { list-style: none; padding: 0; margin: 0; }
+.notify-list li { padding: 10px 4px; border-bottom: 1px solid #eee; }
+.notify-list li.unread { font-weight: bold; }
+.notify-list .time { display: block; font-size: 12px; color: #888; font-weight: normal; margin-top: 2px; }
+.notify-list .kind { font-size: 11px; padding: 1px 6px; border-radius: 8px; background: #eef1f4; color: #555; margin-right: 6px; font-weight: normal; }
+.notify-list .kind.REMINDER { background: #fff4e5; color: #b54708; }
+.toggle-row { display: flex; align-items: center; gap: 8px; }

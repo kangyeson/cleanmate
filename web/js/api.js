@@ -126,6 +126,22 @@ const Page = (function () {
      * 상단 메뉴를 그린다.
      * @param {object|null} me /api/auth/me 결과
      */
+    /**
+     * 상단 "알림" 옆의 안 읽은 알림 수를 채운다.
+     * 알림 서버가 멈춰 있어도 화면의 다른 기능은 그대로 써야 하므로, 실패하면 숫자만 숨긴다
+     * (한 컨테이너의 장애가 화면 전체 오류로 번지지 않게).
+     */
+    function refreshNotifyCount() {
+        Api.get('/api/notify/inbox/unread')
+            .then(function (r) {
+                const n = r ? r.unread : 0;
+                $('#notify-count').text(n).prop('hidden', n === 0);
+            })
+            .catch(function () {
+                $('#notify-count').prop('hidden', true);
+            });
+    }
+
     function renderHeader(me) {
         let right;
         if (me) {
@@ -143,6 +159,10 @@ const Page = (function () {
         const adminLink = (me && me.role === 'ADMIN')
             ? '<a href="admin.html">관리</a>'
             : '';
+        // 알림함 링크 (로그인했을 때만). 안 읽은 수는 알림 서버(Node.js)에 따로 물어 채운다.
+        const notifyLink = me
+            ? '<a href="notify.html">알림 <span id="notify-count" class="count-badge" hidden></span></a>'
+            : '';
 
         $('#header').html(
             '<div class="header-inner">'
@@ -152,10 +172,13 @@ const Page = (function () {
             + '    <a href="stats.html">누적 기록</a>'
             + '    <a href="history.html">주별 기록</a>'
             + (adminLink ? '    ' + adminLink : '')
+            + (notifyLink ? '    ' + notifyLink : '')
             + '  </nav>'
             + '  <div class="user">' + right + '</div>'
             + '</div>'
         );
+
+        if (me) refreshNotifyCount();
 
         $('#logout-btn').on('click', function () {
             Api.post('/api/auth/logout')
@@ -183,6 +206,7 @@ const Page = (function () {
         showMessage: showMessage,
         clearMessage: clearMessage,
         renderHeader: renderHeader,
+        refreshNotifyCount: refreshNotifyCount,
         guardMustChangePw: guardMustChangePw
     };
 })();
