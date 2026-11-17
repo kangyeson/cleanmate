@@ -12,12 +12,14 @@ import com.example.cleanmate.domain.duty.model.RotationPolicy;
 import com.example.cleanmate.domain.duty.model.WeekCalendar;
 import com.example.cleanmate.domain.duty.repository.DutyRepository;
 import com.example.cleanmate.domain.duty.repository.InMemoryDutyRepository;
+import com.example.cleanmate.global.event.DutyEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -155,6 +157,34 @@ class DutyServiceTest {
         assertEquals(DutyStatus.DONE, item.status());
         assertEquals(MEMBER_민정, item.doneById());
         assertEquals(MEMBER_예손, item.assigneeId()); // 담당자는 그대로
+    }
+
+    @Test
+    void 완료_이벤트에_이름과_이번주_완료수가_담긴다() {
+        // 발행된 이벤트를 모아 두는 가짜 EventPublisher (Redis 없이 내용만 확인)
+        List<DutyEvent> events = new ArrayList<>();
+        DutyService svc = new DutyService(new InMemoryDutyRepository(), new StubRosterClient(),
+                new WeekCalendar(FIXED_CLOCK), new RotationPolicy(), events::add);
+        svc.getWeekDuties();
+
+        svc.markDone(ZONE_샤워실, MEMBER_민정);        // 본인 완료
+        svc.markSubstitute(ZONE_바닥, MEMBER_지현);    // 지현이 예손 담당 바닥을 대신 청소
+
+        assertEquals(2, events.size());
+        DutyEvent first = events.get(0);
+        assertEquals("샤워실", first.zoneName());
+        assertEquals("민정", first.doneByName());
+        assertFalse(first.isSubstitute());
+        assertEquals(1, first.doneCount());
+        assertEquals(4, first.total());
+
+        DutyEvent second = events.get(1);
+        assertEquals("바닥", second.zoneName());
+        assertEquals("예손", second.assigneeName());
+        assertEquals("지현", second.doneByName());
+        assertTrue(second.isSubstitute());
+        assertEquals(2, second.doneCount());
+        assertEquals(LocalDate.of(2026, 11, 2), second.weekStart());
     }
 
     @Test

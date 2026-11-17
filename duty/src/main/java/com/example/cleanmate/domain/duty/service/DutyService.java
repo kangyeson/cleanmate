@@ -104,7 +104,7 @@ public class DutyService {
         if (!dutyRepository.updateIfStatus(duty, DutyStatus.PENDING)) {
             throw new AlreadyDoneException();
         }
-        eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, false));
+        publishDoneEvent(roster, weekStart, duty, memberId, false);
     }
 
     /**
@@ -127,7 +127,7 @@ public class DutyService {
         if (!dutyRepository.updateIfStatus(duty, DutyStatus.PENDING)) {
             throw new AlreadyDoneException();
         }
-        eventPublisher.publish(new DutyEvent(roster.roomId(), zoneId, duty.getAssigneeId(), memberId, true));
+        publishDoneEvent(roster, weekStart, duty, memberId, true);
     }
 
     /**
@@ -271,6 +271,23 @@ public class DutyService {
         }
 
         dutyRepository.update(duty);
+    }
+
+    /**
+     * 완료·대신 청소 이벤트 발행 (Redis Streams)
+     * 알림 서버가 문구를 바로 만들 수 있게 이름과 이번 주 완료 수를 함께 담는다.
+     * 같은 트랜잭션 안이라 방금 바꾼 기록도 완료 수에 포함된다.
+     */
+    private void publishDoneEvent(RosterResponse roster, LocalDate weekStart, Duty duty,
+                                  Long doneById, boolean substitute) {
+        List<Duty> week = dutyRepository.findByRoomAndWeek(roster.roomId(), weekStart);
+        int doneCount = (int) week.stream().filter(d -> d.getStatus() == DutyStatus.DONE).count();
+        eventPublisher.publish(new DutyEvent(
+                roster.roomId(), weekStart,
+                duty.getZoneId(), roster.zoneName(duty.getZoneId()),
+                duty.getAssigneeId(), roster.memberName(duty.getAssigneeId()),
+                doneById, roster.memberName(doneById),
+                substitute, doneCount, week.size()));
     }
 
     private WeekDutyResponse.DutyItem toItem(Duty d, RosterResponse roster) {
