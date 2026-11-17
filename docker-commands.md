@@ -10,7 +10,7 @@
 | 네트워크 | cleanmate-front (프록시·화면·서버), cleanmate-back (서버·DB·Redis) |
 | 볼륨 | cleanmate-db-data, cleanmate-proxy-data, cleanmate-proxy-letsencrypt |
 | 호스트 포트 | 80(서비스), 81(NPM 관리 화면, 설정할 때만) |
-| 내부 포트 | web 80, auth 8081, duty 8082, Redis 6379, MySQL 3306 |
+| 내부 포트 | web 80, auth 8081, duty 8082, notify 3000, Redis 6379, MySQL 3306 |
 | 당번 서버 별칭 | duty_pool (front·back 양쪽) |
 
 ---
@@ -30,13 +30,14 @@ docker rm -f cm-proxy cm-web cm-mysql cm-redis
 ```
 Windows PowerShell에서는 `.\gradlew.bat :auth:bootJar :duty:bootJar`. 테스트는 미리 `./gradlew test`로 확인한다.
 
-## 2. 이미지 빌드 (직접 만든 이미지 4개, 빌드 컨텍스트 = 저장소 루트)
+## 2. 이미지 빌드 (직접 만든 이미지 5개, 빌드 컨텍스트 = 저장소 루트)
 
 ```
 docker build -f Dockerfile.db -t kangyeson/cleanmate-db:v1 .
 docker build -f Dockerfile.auth -t kangyeson/cleanmate-auth:v1 .
 docker build -f Dockerfile.duty -t kangyeson/cleanmate-duty:v1 .
 docker build -f Dockerfile.web -t kangyeson/cleanmate-web:v1 .
+docker build -f Dockerfile.notify -t kangyeson/cleanmate-notify:v1 .
 ```
 
 ## 3. 네트워크와 볼륨
@@ -78,6 +79,13 @@ docker run -d --name cleanmate-duty-2 --network cleanmate-back --network-alias d
 docker network connect --alias duty_pool cleanmate-front cleanmate-duty-2
 ```
 
+## 6-2. 알림 서버 (Node.js, back으로 실행 후 front에도 연결)
+
+```
+docker run -d --name cleanmate-notify --network cleanmate-back --restart on-failure --env-file env/notify.env -e DB_HOST=cleanmate-db -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e DUTY_URL=http://duty_pool:8082 kangyeson/cleanmate-notify:v1
+docker network connect cleanmate-front cleanmate-notify
+```
+
 ## 7. 화면과 프록시 (front 네트워크에만, 프록시만 호스트 포트)
 
 ```
@@ -101,6 +109,7 @@ docker run -d --name cleanmate-proxy --network cleanmate-front --restart unless-
 | /api/duty | duty_pool | 8082 |
 | /api/stats | duty_pool | 8082 |
 | /api/history | duty_pool | 8082 |
+| /api/notify | cleanmate-notify | 3000 |
 
 `/internal/...`은 등록하지 않는다(서버 간 호출 전용).
 
@@ -117,6 +126,7 @@ docker network inspect cleanmate-front
 docker network inspect cleanmate-back
 docker exec cleanmate-auth curl -s localhost:8081/health
 docker exec cleanmate-duty-1 curl -s localhost:8082/health
+docker exec cleanmate-notify curl -s localhost:3000/health
 docker exec cleanmate-proxy getent hosts duty_pool
 ```
 브라우저에서 `http://cleanmate.com` → 로그인(예시 데이터: 예손 / 1234) → 현황.
@@ -129,12 +139,13 @@ docker push kangyeson/cleanmate-db:v1
 docker push kangyeson/cleanmate-auth:v1
 docker push kangyeson/cleanmate-duty:v1
 docker push kangyeson/cleanmate-web:v1
+docker push kangyeson/cleanmate-notify:v1
 ```
 
 ## 참고: 전체 삭제 후 다시 시작
 
 ```
-docker rm -f cleanmate-proxy cleanmate-web cleanmate-duty-1 cleanmate-duty-2 cleanmate-auth cleanmate-session cleanmate-db
+docker rm -f cleanmate-proxy cleanmate-web cleanmate-notify cleanmate-duty-1 cleanmate-duty-2 cleanmate-auth cleanmate-session cleanmate-db
 docker volume rm cleanmate-db-data
 ```
 DB 볼륨을 지우면 다음 실행 때 초기화 스크립트가 다시 돈다. 프록시 볼륨을 지우면 NPM 설정을 다시 해야 한다.
