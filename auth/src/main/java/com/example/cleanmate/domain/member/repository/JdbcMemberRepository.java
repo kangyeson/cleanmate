@@ -121,14 +121,4 @@ public class JdbcMemberRepository implements MemberRepository {
     public void updateName(Long memberId, String name) {
         jdbc.update("UPDATE members SET name=? WHERE id=?", name, memberId);
     }
-
-    @Override
-    public void updateTurnOrders(Long roomId, List<Long> memberIdsInNewOrder) {
-        for (int i = 0; i < memberIdsInNewOrder.size(); i++) {
-            jdbc.update(
-                "UPDATE members SET turn_order=? WHERE id=? AND room_id=?",
-                i + 1, memberIdsInNewOrder.get(i), roomId
-            );
-        }
-    }
 }

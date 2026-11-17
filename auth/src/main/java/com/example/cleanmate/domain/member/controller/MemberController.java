@@ -3,7 +3,6 @@ package com.example.cleanmate.domain.member.controller;
 import com.example.cleanmate.domain.member.dto.AddMemberRequest;
 import com.example.cleanmate.domain.member.dto.MemberResponse;
 import com.example.cleanmate.domain.member.dto.RenameMemberRequest;
-import com.example.cleanmate.global.dto.ReorderRequest;
 import com.example.cleanmate.domain.member.dto.ResetPasswordRequest;
 import com.example.cleanmate.domain.member.service.MemberService;
 import com.example.cleanmate.global.apiPayload.ApiResponse;
@@ -44,14 +43,6 @@ public class MemberController {
             @CookieValue(name = "CMSESSION", required = false) String sessionId,
             @Valid @RequestBody AddMemberRequest request) {
         memberService.addMember(sessionId, request.name(), request.password());
-        return ApiResponse.ok();
-    }
-
-    @PutMapping("/order")
-    public ApiResponse<Void> reorderMembers(
-            @CookieValue(name = "CMSESSION", required = false) String sessionId,
-            @Valid @RequestBody ReorderRequest request) {
-        memberService.reorderMembers(sessionId, request.ids());
         return ApiResponse.ok();
     }
 

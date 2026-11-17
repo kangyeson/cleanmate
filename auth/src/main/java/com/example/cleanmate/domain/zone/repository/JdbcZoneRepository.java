@@ -77,14 +77,4 @@ public class JdbcZoneRepository implements ZoneRepository {
     public void updateName(Long zoneId, String name) {
         jdbc.update("UPDATE zones SET name=? WHERE id=?", name, zoneId);
     }
-
-    @Override
-    public void updateZoneOrders(Long roomId, List<Long> zoneIdsInNewOrder) {
-        for (int i = 0; i < zoneIdsInNewOrder.size(); i++) {
-            jdbc.update(
-                "UPDATE zones SET zone_order=? WHERE id=? AND room_id=?",
-                i + 1, zoneIdsInNewOrder.get(i), roomId
-            );
-        }
-    }
 }

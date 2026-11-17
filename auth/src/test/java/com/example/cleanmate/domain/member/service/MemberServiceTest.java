@@ -155,34 +155,6 @@ class MemberServiceTest {
                 () -> service.deleteMember(MEMBER_SESSION, memberId));
     }
 
-    // ── reorderMembers ─────────────────────────────────────
-
-    @Test
-    void reorderMembers_정상_순번_변경() {
-        List<Long> ids = memberRepository.findAllByRoomId(ROOM_ID).stream()
-                .filter(Member::isActive).map(Member::getId).toList();
-        // 순번 반전
-        List<Long> reversed = List.of(ids.get(1), ids.get(0));
-        assertDoesNotThrow(() -> service.reorderMembers(ADMIN_SESSION, reversed));
-    }
-
-    @Test
-    void reorderMembers_목록_불일치_400() {
-        CleanmateException ex = assertThrows(CleanmateException.class,
-                () -> service.reorderMembers(ADMIN_SESSION, List.of(999L)));
-        assertEquals(400, ex.getStatus());
-    }
-
-    @Test
-    void reorderMembers_중복_id_400() {
-        List<Long> ids = memberRepository.findAllByRoomId(ROOM_ID).stream()
-                .filter(Member::isActive).map(Member::getId).toList();
-        Long first = ids.get(0);
-        CleanmateException ex = assertThrows(CleanmateException.class,
-                () -> service.reorderMembers(ADMIN_SESSION, List.of(first, first)));
-        assertEquals(400, ex.getStatus());
-    }
-
     @Test
     void getMembers_mustChangePw_true이면_403() {
         sessions.put("mcp-session", new SessionData(ADMIN_MEMBER_ID, ROOM_ID, "ADMIN", "예손", true));

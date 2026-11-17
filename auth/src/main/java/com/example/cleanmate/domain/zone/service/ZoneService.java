@@ -12,9 +12,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class ZoneService {
@@ -94,32 +92,5 @@ public class ZoneService {
         }
 
         zoneRepository.deactivate(zoneId);
-    }
-
-    @Transactional
-    public void reorderZones(String sessionId, List<Long> zoneIds) {
-        SessionData session = adminGuard.requireAdmin(sessionId);
-        Long roomId = session.roomId();
-        dutyClient.ensureCurrentWeek(roomId);  // 배정 먼저 확정
-
-        List<Long> activeIds = zoneRepository.findAllByRoomId(roomId).stream()
-            .filter(Zone::isActive)
-            .map(Zone::getId)
-            .toList();
-
-        if (zoneIds.size() != activeIds.size()) {
-            throw new CleanmateException("활성 구역 목록과 ID 수가 일치하지 않습니다.", 400);
-        }
-        Set<Long> activeSet = new HashSet<>(activeIds);
-        for (Long id : zoneIds) {
-            if (!activeSet.contains(id)) {
-                throw new CleanmateException("유효하지 않은 구역 ID가 포함되어 있습니다.", 400);
-            }
-        }
-        if (new HashSet<>(zoneIds).size() != zoneIds.size()) {
-            throw new CleanmateException("중복된 구역 ID가 있습니다.", 400);
-        }
-
-        zoneRepository.updateZoneOrders(roomId, zoneIds);
     }
 }

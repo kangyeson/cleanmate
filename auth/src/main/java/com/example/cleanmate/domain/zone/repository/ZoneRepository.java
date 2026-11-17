@@ -19,7 +19,4 @@ public interface ZoneRepository {
 
     /** 이름 변경 */
     void updateName(Long zoneId, String name);
-
-    /** zone_order를 리스트 순서(1부터)로 일괄 갱신 */
-    void updateZoneOrders(Long roomId, List<Long> zoneIdsInNewOrder);
 }

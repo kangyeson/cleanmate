@@ -26,7 +26,4 @@ public interface MemberRepository {
 
     /** 이름 변경 */
     void updateName(Long memberId, String name);
-
-    /** turn_order를 리스트 순서(1부터)로 일괄 갱신 */
-    void updateTurnOrders(Long roomId, List<Long> memberIdsInNewOrder);
 }

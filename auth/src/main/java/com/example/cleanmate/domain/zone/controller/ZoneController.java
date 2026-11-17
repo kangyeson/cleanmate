@@ -1,6 +1,5 @@
 package com.example.cleanmate.domain.zone.controller;
 
-import com.example.cleanmate.global.dto.ReorderRequest;
 import com.example.cleanmate.domain.zone.dto.AddZoneRequest;
 import com.example.cleanmate.domain.zone.dto.RenameZoneRequest;
 import com.example.cleanmate.domain.zone.dto.ZoneResponse;
@@ -43,14 +42,6 @@ public class ZoneController {
             @CookieValue(name = "CMSESSION", required = false) String sessionId,
             @Valid @RequestBody AddZoneRequest request) {
         zoneService.addZone(sessionId, request.name());
-        return ApiResponse.ok();
-    }
-
-    @PutMapping("/order")
-    public ApiResponse<Void> reorderZones(
-            @CookieValue(name = "CMSESSION", required = false) String sessionId,
-            @Valid @RequestBody ReorderRequest request) {
-        zoneService.reorderZones(sessionId, request.ids());
         return ApiResponse.ok();
     }
 

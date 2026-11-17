@@ -6,22 +6,20 @@
  *   POST /api/members                     ← {name, password}
  *   PUT  /api/members/{id}                ← {name}
  *   DELETE /api/members/{id}
- *   PUT  /api/members/order               ← {ids: [순서대로 id]}
  *   PUT  /api/members/{id}/password       ← {password}
  *   GET  /api/zones                       → [{id, name, zoneOrder, active}]
  *   POST /api/zones                       ← {name}
  *   PUT  /api/zones/{id}                  ← {name}
  *   DELETE /api/zones/{id}
- *   PUT  /api/zones/order                 ← {ids: [순서대로 id]}
  *   GET  /api/history?weekStart=YYYY-MM-DD → {weeks:[{weekStart, duties:[{zoneId,zoneName,assigneeId,assigneeName,status,doneById,doneByName,doneDate}]}]}
  *   PUT  /api/duty/last-week              ← {zoneId, status, weekStart, doneById?, doneDate?}
  *   POST /api/rooms/close
  */
 
 // ── 상태 ─────────────────────────────────────────────────────
-let members    = [];   // 활성 멤버 순서 배열
+let members    = [];   // 활성 멤버 (순번 순)
 let allMembers = [];   // 전체 멤버 (비활성 포함)
-let zones      = [];   // 활성 구역 순서 배열
+let zones      = [];   // 활성 구역 (구역 순)
 let allZones   = [];   // 전체 구역 (비활성 포함)
 let lastWeekDuties = [];
 let lastWeekDate   = '';   // "YYYY-MM-DD"
@@ -40,12 +38,6 @@ $(function () {
     // ── 멤버 이벤트 ─────────────────────────────────────────
     $(document).on('click', '#add-member-btn', addMember);
 
-    $(document).on('click', '.move-member-up', function () {
-        moveMember(parseInt($(this).data('id'), 10), -1);
-    });
-    $(document).on('click', '.move-member-down', function () {
-        moveMember(parseInt($(this).data('id'), 10), 1);
-    });
     $(document).on('click', '.rename-member-btn', function () {
         renameMember(parseInt($(this).data('id'), 10));
     });
@@ -71,12 +63,6 @@ $(function () {
     // ── 구역 이벤트 ─────────────────────────────────────────
     $(document).on('click', '#add-zone-btn', addZone);
 
-    $(document).on('click', '.move-zone-up', function () {
-        moveZone(parseInt($(this).data('id'), 10), -1);
-    });
-    $(document).on('click', '.move-zone-down', function () {
-        moveZone(parseInt($(this).data('id'), 10), 1);
-    });
     $(document).on('click', '.rename-zone-btn', function () {
         renameZone(parseInt($(this).data('id'), 10));
     });
@@ -147,15 +133,6 @@ function renderMembers() {
     allMembers.forEach(function (m) {
         const isInactive = !m.active;
         const rowClass = isInactive ? 'inactive-row' : '';
-        const activeIdx = members.findIndex(function (am) { return am.id === m.id; });
-
-        let upBtn = '', downBtn = '';
-        if (!isInactive) {
-            const disUp  = activeIdx <= 0 ? 'disabled' : '';
-            const disDown = activeIdx >= members.length - 1 ? 'disabled' : '';
-            upBtn   = '<button class="order-btn move-member-up" data-id="' + m.id + '" ' + disUp   + '>▲</button>';
-            downBtn = '<button class="order-btn move-member-down" data-id="' + m.id + '" ' + disDown + '>▼</button>';
-        }
 
         let actions = '';
         if (!isInactive) {
@@ -173,7 +150,6 @@ function renderMembers() {
 
         tbody.append(
             '<tr class="' + rowClass + '">'
-            + '<td class="order-btns">' + upBtn + downBtn + '</td>'
             + '<td>' + Page.esc(m.name) + '</td>'
             + '<td>' + roleText + '</td>'
             + '<td>' + statusText + '</td>'
@@ -181,19 +157,6 @@ function renderMembers() {
             + '</tr>'
         );
     });
-}
-
-function moveMember(id, direction) {
-    const idx = members.findIndex(function (m) { return m.id === id; });
-    if (idx < 0) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= members.length) return;
-    const tmp = members[idx];
-    members[idx] = members[newIdx];
-    members[newIdx] = tmp;
-    Api.put('/api/members/order', { ids: members.map(function (m) { return m.id; }) })
-        .then(loadMembers)
-        .catch(function (err) { Page.showMessage(err.message); loadMembers(); });
 }
 
 function addMember() {
@@ -247,15 +210,6 @@ function renderZones() {
     allZones.forEach(function (z) {
         const isInactive = !z.active;
         const rowClass   = isInactive ? 'inactive-row' : '';
-        const activeIdx  = zones.findIndex(function (az) { return az.id === z.id; });
-
-        let upBtn = '', downBtn = '';
-        if (!isInactive) {
-            const disUp   = activeIdx <= 0 ? 'disabled' : '';
-            const disDown = activeIdx >= zones.length - 1 ? 'disabled' : '';
-            upBtn   = '<button class="order-btn move-zone-up" data-id="' + z.id + '" ' + disUp   + '>▲</button>';
-            downBtn = '<button class="order-btn move-zone-down" data-id="' + z.id + '" ' + disDown + '>▼</button>';
-        }
 
         let actions = '';
         if (!isInactive) {
@@ -265,26 +219,12 @@ function renderZones() {
 
         tbody.append(
             '<tr class="' + rowClass + '">'
-            + '<td class="order-btns">' + upBtn + downBtn + '</td>'
             + '<td>' + Page.esc(z.name) + '</td>'
             + '<td>' + (isInactive ? '비활성' : '활성') + '</td>'
             + '<td class="actions-col">' + actions + '</td>'
             + '</tr>'
         );
     });
-}
-
-function moveZone(id, direction) {
-    const idx = zones.findIndex(function (z) { return z.id === id; });
-    if (idx < 0) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= zones.length) return;
-    const tmp = zones[idx];
-    zones[idx] = zones[newIdx];
-    zones[newIdx] = tmp;
-    Api.put('/api/zones/order', { ids: zones.map(function (z) { return z.id; }) })
-        .then(loadZones)
-        .catch(function (err) { Page.showMessage(err.message); loadZones(); });
 }
 
 function addZone() {

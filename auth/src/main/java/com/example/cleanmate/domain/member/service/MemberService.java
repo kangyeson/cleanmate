@@ -14,9 +14,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class MemberService {
@@ -110,33 +108,6 @@ public class MemberService {
         }
 
         memberRepository.deactivate(memberId);
-    }
-
-    @Transactional
-    public void reorderMembers(String sessionId, List<Long> memberIds) {
-        SessionData session = adminGuard.requireAdmin(sessionId);
-        Long roomId = session.roomId();
-        dutyClient.ensureCurrentWeek(roomId);  // 배정 먼저 확정
-
-        List<Long> activeIds = memberRepository.findAllByRoomId(roomId).stream()
-            .filter(Member::isActive)
-            .map(Member::getId)
-            .toList();
-
-        if (memberIds.size() != activeIds.size()) {
-            throw new CleanmateException("활성 멤버 목록과 ID 수가 일치하지 않습니다.", 400);
-        }
-        Set<Long> activeSet = new HashSet<>(activeIds);
-        for (Long id : memberIds) {
-            if (!activeSet.contains(id)) {
-                throw new CleanmateException("유효하지 않은 멤버 ID가 포함되어 있습니다.", 400);
-            }
-        }
-        if (new HashSet<>(memberIds).size() != memberIds.size()) {
-            throw new CleanmateException("중복된 멤버 ID가 있습니다.", 400);
-        }
-
-        memberRepository.updateTurnOrders(roomId, memberIds);
     }
 
     @Transactional

@@ -50,17 +50,6 @@ public class InMemoryZoneRepository implements ZoneRepository {
             : z);
     }
 
-    @Override
-    public void updateZoneOrders(Long roomId, List<Long> zoneIdsInNewOrder) {
-        for (int i = 0; i < zoneIdsInNewOrder.size(); i++) {
-            final Long zoneId = zoneIdsInNewOrder.get(i);
-            final int newOrder = i + 1;
-            store.replaceAll(z -> z.getId() != null && z.getId().equals(zoneId) && z.getRoomId().equals(roomId)
-                ? new Zone(z.getId(), z.getRoomId(), z.getName(), newOrder, z.isActive())
-                : z);
-        }
-    }
-
     public List<Zone> findAll() {
         return List.copyOf(store);
     }

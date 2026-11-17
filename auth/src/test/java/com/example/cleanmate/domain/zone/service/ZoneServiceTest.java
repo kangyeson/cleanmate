@@ -111,13 +111,6 @@ class ZoneServiceTest {
     }
 
     @Test
-    void reorderZones_목록_불일치_400() {
-        CleanmateException ex = assertThrows(CleanmateException.class,
-                () -> service.reorderZones(ADMIN_SESSION, List.of(999L)));
-        assertEquals(400, ex.getStatus());
-    }
-
-    @Test
     void addZone_duty_실패_시_503_구역_추가_안됨() {
         Map<String, SessionData> sessions = new HashMap<>();
         sessions.put(ADMIN_SESSION, new SessionData(10L, ROOM_ID, "ADMIN", "예손", false));

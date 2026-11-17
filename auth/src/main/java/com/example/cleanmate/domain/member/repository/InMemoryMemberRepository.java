@@ -109,22 +109,6 @@ public class InMemoryMemberRepository implements MemberRepository {
         store.put(memberId, updated);
     }
 
-    @Override
-    public void updateTurnOrders(Long roomId, List<Long> memberIdsInNewOrder) {
-        for (int i = 0; i < memberIdsInNewOrder.size(); i++) {
-            Long memberId = memberIdsInNewOrder.get(i);
-            Member existing = store.get(memberId);
-            if (existing != null && existing.getRoomId().equals(roomId)) {
-                int newOrder = i + 1;
-                Member updated = new Member(
-                    existing.getId(), existing.getRoomId(), existing.getName(), existing.getRole(),
-                    existing.getPasswordHash(), existing.isMustChangePw(), newOrder, existing.isActive()
-                );
-                store.put(memberId, updated);
-            }
-        }
-    }
-
     /** 테스트용: 저장된 전체 멤버 목록 반환. */
     public List<Member> findAll() {
         return List.copyOf(store.values());
