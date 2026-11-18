@@ -12,6 +12,11 @@ FROM eclipse-temurin:21-jre
 # 한국 시간대 (정기 작업은 코드에서도 Asia/Seoul로 지정되어 있음)
 ENV TZ=Asia/Seoul
 
+# 이미지 버전: 빌드할 때 --build-arg APP_VERSION=v2 로 바꾼다 (기본 v1).
+# 응답 헤더 X-App-Version으로 나가므로, 카나리·전환·롤백 때 어느 버전이 답했는지 보인다.
+ARG APP_VERSION=v1
+ENV APP_VERSION=$APP_VERSION
+
 # 컨테이너 안에서 /health를 확인하기 위한 curl 설치 (docker exec ... curl localhost:8082/health)
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \

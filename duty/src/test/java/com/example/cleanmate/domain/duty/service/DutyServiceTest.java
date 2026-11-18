@@ -85,6 +85,19 @@ class DutyServiceTest {
                 .forEach(d -> assertEquals(DutyStatus.PENDING, d.status()));
     }
 
+    @Test
+    void getWeekDuties_완료수와_구역수를_함께_준다() {
+        WeekDutyResponse before = service.getWeekDuties();
+        assertEquals(0, before.doneCount());
+        assertEquals(4, before.total());
+
+        service.markDone(ZONE_샤워실, MEMBER_민정);
+
+        WeekDutyResponse after = service.getWeekDuties();
+        assertEquals(1, after.doneCount());
+        assertEquals(4, after.total());
+    }
+
     // ── markDone ─────────────────────────────────────────────
 
     @Test

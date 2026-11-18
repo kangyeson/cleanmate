@@ -307,6 +307,7 @@ public class DutyService {
         List<WeekDutyResponse.DutyItem> items = duties.stream()
                 .map(d -> toItem(d, roster))
                 .toList();
-        return new WeekDutyResponse(weekStart, items);
+        int doneCount = (int) duties.stream().filter(d -> d.getStatus() == DutyStatus.DONE).count();
+        return new WeekDutyResponse(weekStart, items, doneCount, items.size());
     }
 }
