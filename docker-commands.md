@@ -170,6 +170,145 @@ docker logs cleanmate-duty-2 2>&1 | Select-String "정기 작업"
 ```
 (VM bash는 `Select-String` 대신 `grep`) 매분 한 대만 "실행 완료", 다른 한 대는 "다른 인스턴스가 실행 중"으로 건너뛰어야 한다. 끝나면 두 서버를 지우고 6단계 명령(WEEKLY_CRON 없이)으로 다시 실행한 뒤 다시 `nginx -s reload`.
 
+## 시험 ④ 카나리 배포 (v2를 요청의 약 20%에만)
+
+v2 이미지 만들기 (v1 이미지는 다시 빌드하지 않는다. 롤백할 때 돌아갈 버전이다):
+```
+.\gradlew :duty:bootJar
+docker build -f Dockerfile.duty --build-arg APP_VERSION=v2 -t kangyeson/cleanmate-duty:v2 .
+```
+1. v2 서버 한 대 실행. 별칭 `duty_pool`은 주지 않는다(인증·알림 서버의 내부 호출은 아직 v1로만, 사용자 요청만 비율대로 v2로).
+```
+docker run -d --name cleanmate-duty-3 --network cleanmate-back --restart on-failure --env-file env/duty.env -e DB_HOST=cleanmate-db -e DB_USER=duty_user -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e INSTANCE_ID=duty-3 kangyeson/cleanmate-duty:v2
+docker network connect cleanmate-front cleanmate-duty-3
+```
+2. 20초쯤 뒤 v2 단독 확인 (프록시를 거치지 않고 컨테이너 안에서):
+```
+docker exec cleanmate-duty-3 curl -s localhost:8082/health
+docker exec cleanmate-duty-3 curl -s -i localhost:8082/api/duty/week
+```
+`X-App-Version: v2` 헤더와 본문의 `"doneCount"`, `"total"`을 확인한다.
+3. upstream에 v2를 weight 1로 추가 (v1 두 대는 weight 2 → v2 약 20%):
+```
+docker cp deploy/npm/http_top.canary.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+docker run --rm --network cleanmate-front -v ${PWD}/scripts:/scripts curlimages/curl:8.10.1 sh /scripts/loadcheck.sh -n 50
+```
+기대: 실패 0, 버전별 처리 v1=40 v2=10, 서버별 duty-1=20 duty-2=20 duty-3=10.
+4. 문제가 보이면 카나리 중단(롤백): 원래 설정으로 되돌리고 v2를 지운다.
+```
+docker cp deploy/npm/http_top.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -s reload
+docker rm -f cleanmate-duty-3
+```
+(순서 주의: upstream에서 먼저 빼고 reload한 뒤 컨테이너를 지운다. 반대로 하면 reload가 실패한다.)
+
+## 시험 ⑤ 무중단 전환 (v1 → v2, 한 대씩)
+
+카나리(시험 ④)가 문제없을 때 이어서 한다. duty-3(v2)은 전환이 끝날 때까지 그대로 두어, 한 대를 교체하는 동안에도 두 대가 요청을 받게 한다.
+단계별 upstream 설정은 `deploy/npm/rolling/`에 있다(`down` = 그 서버로 보내지 않음).
+
+**PowerShell 창을 하나 더 열어** `C:\cleanmate`에서 측정을 먼저 시작한다(약 5분, 끝나면 결과 출력):
+```
+docker run --rm --network cleanmate-front -v ${PWD}/scripts:/scripts curlimages/curl:8.10.1 sh /scripts/loadcheck.sh -n 1200 -s 0.2
+```
+첫 창에서 순서대로:
+
+1. duty-1을 upstream에서 빼고 v2로 교체
+```
+docker cp deploy/npm/rolling/1-duty1-out.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+```
+5초 기다린 뒤(이미 받은 요청이 끝나도록) 교체:
+```
+docker stop cleanmate-duty-1
+docker rm cleanmate-duty-1
+docker run -d --name cleanmate-duty-1 --network cleanmate-back --network-alias duty_pool --restart on-failure --env-file env/duty.env -e DB_HOST=cleanmate-db -e DB_USER=duty_user -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e INSTANCE_ID=duty-1 kangyeson/cleanmate-duty:v2
+docker network connect --alias duty_pool cleanmate-front cleanmate-duty-1
+docker exec cleanmate-duty-1 curl -s localhost:8082/health
+```
+`/health`가 `"success":true`가 될 때까지(20초쯤) 기다린다. 아직 upstream에서 빠져 있으므로 준비 중에도 사용자 요청은 오지 않는다.
+
+2. duty-1을 다시 넣고, duty-2를 빼고 v2로 교체
+```
+docker cp deploy/npm/rolling/2-duty2-out.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+```
+5초 기다린 뒤(이미 받은 요청이 끝나도록) 교체:
+```
+docker stop cleanmate-duty-2
+docker rm cleanmate-duty-2
+docker run -d --name cleanmate-duty-2 --network cleanmate-back --network-alias duty_pool --restart on-failure --env-file env/duty.env -e DB_HOST=cleanmate-db -e DB_USER=duty_user -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e INSTANCE_ID=duty-2 kangyeson/cleanmate-duty:v2
+docker network connect --alias duty_pool cleanmate-front cleanmate-duty-2
+docker exec cleanmate-duty-2 curl -s localhost:8082/health
+```
+`/health`가 `"success":true`가 될 때까지(20초쯤) 기다린다. 아직 upstream에서 빠져 있으므로 준비 중에도 사용자 요청은 오지 않는다.
+
+3. duty-2를 다시 넣고 duty-3을 뺀 뒤 정리 (최종: duty-1·duty-2 모두 v2)
+```
+docker cp deploy/npm/http_top.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+docker stop cleanmate-duty-3
+docker rm cleanmate-duty-3
+```
+측정이 끝나면 기대: 실패 0, 버전별 처리에 v1과 v2가 섞여 있고(전환 중), 끝 무렵은 v2만. 끝난 뒤 한 번 더:
+```
+docker run --rm --network cleanmate-front -v ${PWD}/scripts:/scripts curlimages/curl:8.10.1 sh /scripts/loadcheck.sh -n 40
+```
+기대: 실패 0, duty-1=20 duty-2=20, v2=40.
+
+주의: 컨테이너를 지운 상태에서는 reload하지 않는다(nginx가 이름을 찾지 못해 실패). 항상 "upstream에서 빼고 reload → 교체 → 확인 → 다음 파일로 다시 넣고 reload" 순서.
+
+## 시험 ⑥ 롤백 (v2 → v1)
+
+같은 순서로, 이미지 태그만 v1으로 되돌린다(v1 이미지는 다시 빌드하지 않고 남아 있던 것을 쓴다). 다른 창에서 측정을 다시 시작:
+```
+docker run --rm --network cleanmate-front -v ${PWD}/scripts:/scripts curlimages/curl:8.10.1 sh /scripts/loadcheck.sh -n 1200 -s 0.2
+```
+1. duty-1 교체
+```
+docker cp deploy/npm/rolling/3-rollback-duty1-out.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+```
+5초 기다린 뒤(이미 받은 요청이 끝나도록) 교체:
+```
+docker stop cleanmate-duty-1
+docker rm cleanmate-duty-1
+docker run -d --name cleanmate-duty-1 --network cleanmate-back --network-alias duty_pool --restart on-failure --env-file env/duty.env -e DB_HOST=cleanmate-db -e DB_USER=duty_user -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e INSTANCE_ID=duty-1 kangyeson/cleanmate-duty:v1
+docker network connect --alias duty_pool cleanmate-front cleanmate-duty-1
+docker exec cleanmate-duty-1 curl -s localhost:8082/health
+```
+`/health`가 `"success":true`가 될 때까지(20초쯤) 기다린다. 아직 upstream에서 빠져 있으므로 준비 중에도 사용자 요청은 오지 않는다.
+
+2. duty-2 교체
+```
+docker cp deploy/npm/rolling/4-rollback-duty2-out.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -t
+docker exec cleanmate-proxy nginx -s reload
+```
+5초 기다린 뒤(이미 받은 요청이 끝나도록) 교체:
+```
+docker stop cleanmate-duty-2
+docker rm cleanmate-duty-2
+docker run -d --name cleanmate-duty-2 --network cleanmate-back --network-alias duty_pool --restart on-failure --env-file env/duty.env -e DB_HOST=cleanmate-db -e DB_USER=duty_user -e REDIS_HOST=cleanmate-session -e AUTH_URL=http://cleanmate-auth:8081 -e INSTANCE_ID=duty-2 kangyeson/cleanmate-duty:v1
+docker network connect --alias duty_pool cleanmate-front cleanmate-duty-2
+docker exec cleanmate-duty-2 curl -s localhost:8082/health
+```
+`/health`가 `"success":true`가 될 때까지(20초쯤) 기다린다. 아직 upstream에서 빠져 있으므로 준비 중에도 사용자 요청은 오지 않는다.
+
+3. 원래 설정으로
+```
+docker cp deploy/npm/http_top.conf cleanmate-proxy:/data/nginx/custom/http_top.conf
+docker exec cleanmate-proxy nginx -s reload
+docker run --rm --network cleanmate-front -v ${PWD}/scripts:/scripts curlimages/curl:8.10.1 sh /scripts/loadcheck.sh -n 40
+```
+기대: 측정 중 실패 0, 끝난 뒤 v1=40.
+
 ## 10. 도커 허브 업로드
 
 ```
