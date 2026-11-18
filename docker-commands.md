@@ -35,10 +35,11 @@ Windows PowerShell에서는 `.\gradlew.bat :auth:bootJar :duty:bootJar`. 테스�
 ```
 docker build -f Dockerfile.db -t kangyeson/cleanmate-db:v1 .
 docker build -f Dockerfile.auth -t kangyeson/cleanmate-auth:v1 .
-docker build -f Dockerfile.duty -t kangyeson/cleanmate-duty:v1 .
+docker build -f Dockerfile.duty -t kangyeson/cleanmate-duty:v1 .     # v1은 git tag v1 코드로 빌드한 것 (아래 주의)
 docker build -f Dockerfile.web -t kangyeson/cleanmate-web:v1 .
 docker build -f Dockerfile.notify -t kangyeson/cleanmate-notify:v1 .
 ```
+주의: 당번 서버 v1 이미지는 `git tag v1` 시점의 코드로 만든 것이다. 지금 코드로 다시 빌드하면 v2 내용이 v1 태그에 들어가 롤백 시험이 의미 없어지므로, 새 PC에서는 빌드하지 말고 도커 허브에서 pull한다. v2는 `--build-arg APP_VERSION=v2`로 빌드한다(시험 ④).
 
 ## 3. 네트워크와 볼륨
 
@@ -316,6 +317,7 @@ docker login
 docker push kangyeson/cleanmate-db:v1
 docker push kangyeson/cleanmate-auth:v1
 docker push kangyeson/cleanmate-duty:v1
+docker push kangyeson/cleanmate-duty:v2
 docker push kangyeson/cleanmate-web:v1
 docker push kangyeson/cleanmate-notify:v1
 ```
